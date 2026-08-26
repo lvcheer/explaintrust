@@ -9,7 +9,7 @@ description = "Evaluate the trustworthiness of post-hoc explanations (SHAP, LIME
 readme = "README.md"
 requires-python = ">=3.9"
 license = { text = "MIT" }
-authors = [{ name = "Your Name" }]
+authors = [{ name = "lvcheer" }]
 keywords = ["explainable-ai", "xai", "shap", "lime", "interpretability", "faithfulness"]
 dependencies = [
     "numpy>=1.24",

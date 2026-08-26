@@ -1,7 +1,7 @@
 ---
 title: "Why your SHAP plot might be lying to you"
 subtitle: "An interactive guide to testing explanations before you trust them"
-author: "Your Name"
+author: "lvcheer"
 date: last-modified
 description: >
   SHAP and LIME give you beautiful feature-importance charts, but a chart is not
@@ -149,7 +149,7 @@ A trust battery — run these before you trust any post-hoc explanation:
      thresholds are heuristics you calibrate, not laws. -->
 
 The library that produced every number in this article is open source:
-[**explaintrust**](https://github.com/yourname/explaintrust) — a small,
+[**explaintrust**](https://github.com/lvcheer/explaintrust) — a small,
 opinionated Python package that runs this battery for you.
 
 ## Caveats

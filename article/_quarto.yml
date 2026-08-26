@@ -5,7 +5,7 @@ project:
 website:
   title: "Why your SHAP plot might be lying to you"
   page-navigation: true
-  repo-url: https://github.com/yourname/explaintrust
+  repo-url: https://github.com/lvcheer/explaintrust
   repo-actions: [edit, source]
 
 format:
