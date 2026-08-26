@@ -5,6 +5,13 @@ The report deliberately separates **measurement** (the metrics) from
 scientific claims — they are labeled as such, and every verdict carries a
 plain-English reason so the user can override the thresholds with their own
 domain knowledge.
+
+A first-pass calibration study lives in ``experiments/`` (see
+``experiments/calibrate_thresholds.py`` and its README). It confirms the
+direction of four metrics (removal-effect correlation, infidelity,
+max-sensitivity, run-to-run rank stability) but shows that the *absolute*
+threshold values are model- and regime-specific — so the numbers below are
+deliberately kept as documented defaults rather than auto-fitted constants.
 """
 
 from __future__ import annotations

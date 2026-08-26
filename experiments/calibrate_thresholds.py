@@ -1,0 +1,314 @@
+"""Calibrate report thresholds on synthetic ground-truth regimes.
+
+Method
+------
+Each metric is measured in two regimes where we *know* the ground truth, using
+the synthetic datasets' built-in generative structure. Regimes are chosen so the
+metric has a real, directional signal in each (see per-function docstrings).
+
+Threshold rule
+--------------
+For each metric we pick two boundaries so that ~80% of the *known-good* samples
+are judged "good" and ~80% of the *known-bad* samples are judged "bad":
+
+* higher-is-better: ``good = P20(good)``, ``warn = P80(bad)``
+* lower-is-better: ``good = P80(good)``, ``warn = P20(bad)``
+
+This is a first-pass calibration on synthetic data — a defensible v0.2 baseline,
+not a claim about real-world distributions.
+"""
+from __future__ import annotations
+
+import json
+import sys
+from pathlib import Path
+
+import numpy as np
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.linear_model import LogisticRegression
+from sklearn.model_selection import train_test_split
+
+from explaintrust import (
+    lime_attributions,
+    make_collinear_dataset,
+    scalar_predictor,
+    shap_attributions,
+    shift_distribution,
+    to_contribution_scale,
+)
+from explaintrust.metrics import (
+    comprehensiveness_ratio,
+    cross_run_stability,
+    cross_segment_stability,
+    explainer_disagreement,
+    infidelity,
+    max_sensitivity,
+    removal_effect_correlation,
+)
+
+HERE = Path(__file__).parent
+SEEDS = range(20)
+N = 900
+N_EXPLAIN = 4
+BG = 100
+TOPK = 3
+
+
+def _clean(xs):
+    return [float(v) for v in xs if v == v and np.isfinite(v)]
+
+
+def propose(name: str, direction: str, good, bad) -> dict:
+    """Fit thresholds from the two regimes and validate them."""
+    good, bad = _clean(good), _clean(bad)
+    if len(good) < 5 or len(bad) < 5:
+        return {"name": name, "error": "insufficient samples"}
+
+    if direction == "higher":
+        good_thresh = float(np.percentile(good, 20))
+        warn_thresh = float(np.percentile(bad, 80))
+    else:
+        good_thresh = float(np.percentile(good, 80))
+        warn_thresh = float(np.percentile(bad, 20))
+
+    def verdict(v):
+        if direction == "higher":
+            return "good" if v >= good_thresh else ("bad" if v < warn_thresh else "warn")
+        return "good" if v <= good_thresh else ("bad" if v > warn_thresh else "warn")
+
+    good_ok = float(np.mean([verdict(v) == "good" for v in good]))
+    bad_ok = float(np.mean([verdict(v) == "bad" for v in bad]))
+
+    return {
+        "name": name,
+        "direction": direction,
+        "good_threshold": round(good_thresh, 4),
+        "warn_threshold": round(warn_thresh, 4),
+        "good_median": round(float(np.median(good)), 4),
+        "bad_median": round(float(np.median(bad)), 4),
+        "n_good": len(good),
+        "n_bad": len(bad),
+        "good_pass_rate": round(good_ok, 3),
+        "bad_flag_rate": round(bad_ok, 3),
+    }
+
+
+def _collinear(seed):
+    X, y, names = make_collinear_dataset(n=N, seed=seed)
+    return X, y, names
+
+
+def _clean_data(seed):
+    """Collinear dataset with the x0/x2 collinearity broken (x2 is pure noise)."""
+    X, y, names = make_collinear_dataset(n=N, seed=seed)
+    X[:, 2] = np.random.default_rng(seed).normal(0.0, 1.0, size=len(X))
+    return X, y, names
+
+
+def _rf(seed):
+    return RandomForestClassifier(n_estimators=60, max_depth=4, random_state=seed)
+
+
+def faithfulness():
+    """good = real SHAP on clean data; bad = same magnitudes shuffled."""
+    removal_g, removal_b, comp_g, comp_b = [], [], [], []
+    for seed in SEEDS:
+        X, y, _ = _clean_data(seed)
+        Xtr, Xte, ytr, _ = train_test_split(X, y, test_size=0.3, random_state=seed)
+        model = _rf(seed).fit(Xtr, ytr)
+        pred = scalar_predictor(model)
+        bg, Xe = Xtr[:BG], Xte[:N_EXPLAIN]
+        A = shap_attributions(model, Xe, method="tree")
+        rng = np.random.default_rng(seed)
+        for i in range(N_EXPLAIN):
+            removal_g.append(removal_effect_correlation(pred, Xe[i], A[i], bg))
+            comp_g.append(comprehensiveness_ratio(pred, Xe[i], A[i], bg, top_k=TOPK, seed=seed + i))
+            bad = A[i].copy()
+            rng.shuffle(bad)
+            removal_b.append(removal_effect_correlation(pred, Xe[i], bad, bg))
+            comp_b.append(comprehensiveness_ratio(pred, Xe[i], bad, bg, top_k=TOPK, seed=seed + i))
+    return [
+        propose("SHAP removal-effect correlation", "higher", removal_g, removal_b),
+        propose("SHAP comprehensiveness (top-k vs random)", "higher", comp_g, comp_b),
+    ]
+
+
+def lime_infidelity():
+    """good = real LIME on a *linear* model (weights == local gradient);
+    bad = shuffled LIME weights. Uses logistic regression so the local-linear
+    surrogate is actually the truth, giving infidelity a real signal."""
+    g, b = [], []
+    for seed in SEEDS:
+        X, y, names = _clean_data(seed)
+        Xtr, Xte, ytr, _ = train_test_split(X, y, test_size=0.3, random_state=seed)
+        model = LogisticRegression(max_iter=1000).fit(Xtr, ytr)
+        pred = scalar_predictor(model)
+        bg, Xe = Xtr[:BG], Xte[:N_EXPLAIN]
+        L = lime_attributions(model, Xe, bg, feature_names=names, num_samples=1000, seed=seed)
+        rng = np.random.default_rng(seed)
+        for i in range(N_EXPLAIN):
+            g.append(infidelity(pred, Xe[i], L[i], bg, seed=seed + i))
+            bad = L[i].copy()
+            rng.shuffle(bad)
+            b.append(infidelity(pred, Xe[i], bad, bg, seed=seed + i))
+    return [propose("LIME local fidelity (infidelity)", "lower", g, b)]
+
+
+def sensitivity():
+    """good = smooth explainer (LIME with many samples); bad = piecewise-constant
+    TreeSHAP, which jumps at split boundaries and is therefore more sensitive."""
+    g, b = [], []
+    for seed in SEEDS:
+        X, y, names = _clean_data(seed)
+        Xtr, Xte, ytr, _ = train_test_split(X, y, test_size=0.3, random_state=seed)
+        model = _rf(seed).fit(Xtr, ytr)
+        bg, x0 = Xtr[:BG], Xte[0]
+
+        def tree(x):
+            return shap_attributions(model, x.reshape(1, -1), method="tree")[0]
+
+        def lime_smooth(x):
+            return lime_attributions(
+                model, x.reshape(1, -1), bg, feature_names=names, num_samples=2000, seed=seed
+            )[0]
+
+        g.append(max_sensitivity(lime_smooth, x0, bg, n_perturbations=6, seed=seed))
+        b.append(max_sensitivity(tree, x0, bg, n_perturbations=6, seed=seed))
+    return [propose("Max sensitivity", "lower", g, b)]
+
+
+def stability():
+    """good = LIME with many samples; bad = LIME with few samples (noisy)."""
+    rank_g, rank_b, sign_g, sign_b = [], [], [], []
+    for seed in SEEDS:
+        X, y, names = _clean_data(seed)
+        Xtr, Xte, ytr, _ = train_test_split(X, y, test_size=0.3, random_state=seed)
+        model = _rf(seed).fit(Xtr, ytr)
+        bg, Xe = Xtr[:BG], Xte[:1]
+
+        def lime_hi(seed: int):
+            return lime_attributions(model, Xe, bg, feature_names=names, num_samples=2000, seed=seed)[0]
+
+        def lime_lo(seed: int):
+            return lime_attributions(model, Xe, bg, feature_names=names, num_samples=50, seed=seed)[0]
+
+        hi = cross_run_stability(lime_hi, n_runs=5, top_k=TOPK)
+        lo = cross_run_stability(lime_lo, n_runs=5, top_k=TOPK)
+        rank_g.append(hi["rank_corr"])
+        rank_b.append(lo["rank_corr"])
+        sign_g.append(hi["sign_agreement"])
+        sign_b.append(lo["sign_agreement"])
+    return [
+        propose("Run-to-run rank stability", "higher", rank_g, rank_b),
+        propose("Run-to-run sign stability", "higher", sign_g, sign_b),
+    ]
+
+
+def disagreement():
+    """good = collinearity removed (train AND test); bad = high collinearity.
+    The model is fit on the matching regime so SHAP and LIME face the same data."""
+    sign_g, sign_b, rank_g, rank_b, top_g, top_b = [], [], [], [], [], []
+    for seed in SEEDS:
+        for label, (X, y, names) in (("good", _clean_data(seed)), ("bad", _collinear(seed))):
+            Xtr, Xte, ytr, _ = train_test_split(X, y, test_size=0.3, random_state=seed)
+            model = _rf(seed).fit(Xtr, ytr)
+            bg = Xtr[:BG]
+            Xe = Xte[:N_EXPLAIN]
+            S = shap_attributions(model, Xe, method="tree")
+            L = lime_attributions(model, Xe, bg, feature_names=names, num_samples=1000, seed=seed)
+            C = to_contribution_scale(L, Xe, bg)
+            for i in range(N_EXPLAIN):
+                d = explainer_disagreement(S[i], C[i], top_k=TOPK)
+                if label == "good":
+                    sign_g.append(d["sign_disagreement"])
+                    rank_g.append(d["rank_corr"])
+                    top_g.append(d["topk_overlap"])
+                else:
+                    sign_b.append(d["sign_disagreement"])
+                    rank_b.append(d["rank_corr"])
+                    top_b.append(d["topk_overlap"])
+    return [
+        propose("SHAP vs LIME sign disagreement", "lower", sign_g, sign_b),
+        propose("SHAP vs LIME rank agreement", "higher", rank_g, rank_b),
+        propose(f"SHAP vs LIME top-{TOPK} overlap", "higher", top_g, top_b),
+    ]
+
+
+def distribution():
+    """good = two random halves of in-distribution data (identical stories);
+    bad = in-distribution vs. decoupled-x2 data (collinearity breaks, so the
+    feature-importance story flips across the two segments)."""
+    rank_g, rank_b, flip_g, flip_b = [], [], [], []
+    for seed in SEEDS:
+        X, y, _ = _collinear(seed)
+        Xtr, Xte, ytr, _ = train_test_split(X, y, test_size=0.3, random_state=seed)
+        model = _rf(seed).fit(Xtr, ytr)
+
+        # good: two random halves of the in-distribution holdout
+        n_half = len(Xte) // 2
+        idx = np.random.default_rng(seed).permutation(len(Xte))
+        seg_g = np.concatenate([np.zeros(n_half), np.ones(len(Xte) - n_half)]).astype(int)
+        A_g = shap_attributions(model, Xte[idx], method="tree")
+        g = cross_segment_stability(Xte[idx], seg_g, A_g, top_k=TOPK)
+
+        # bad: in-distribution vs decoupled-x2 (collinearity broken)
+        Xs, ys, _ = make_collinear_dataset(n=len(Xte), seed=seed + 7)
+        Xs, _, _ = shift_distribution(Xs, ys, shift="x2_decouple", seed=seed + 1)
+        X_both = np.vstack([Xte, Xs])
+        seg_b = np.concatenate([np.zeros(len(Xte)), np.ones(len(Xs))]).astype(int)
+        A_b = shap_attributions(model, X_both, method="tree")
+        b = cross_segment_stability(X_both, seg_b, A_b, top_k=TOPK)
+
+        rank_g.append(g["rank_corr"])
+        rank_b.append(b["rank_corr"])
+        flip_g.append(g["topk_flip_rate"])
+        flip_b.append(b["topk_flip_rate"])
+    return [
+        propose("Cross-segment rank stability", "higher", rank_g, rank_b),
+        propose(f"Top-{TOPK} flip rate across segments", "lower", flip_g, flip_b),
+    ]
+
+
+def main() -> None:
+    results = []
+    for fn in (faithfulness, lime_infidelity, sensitivity, stability, disagreement, distribution):
+        print(f"[calibrating] {fn.__name__} ...", flush=True)
+        results.extend(fn())
+
+    payload = {
+        "method": (
+            "good = P20(good)/P80(bad) for higher; P80(good)/P20(bad) for lower. "
+            "~80% of known-good samples judged 'good', ~80% of known-bad judged 'bad'."
+        ),
+        "seeds": list(SEEDS),
+        "n": N,
+        "models": {
+            "faithfulness": "RandomForestClassifier(n_estimators=60, max_depth=4) on clean data",
+            "lime_infidelity": "LogisticRegression on clean data",
+            "sensitivity": "RF; good=LIME(2000), bad=TreeSHAP",
+            "stability": "RF; good=LIME(2000), bad=LIME(50)",
+            "disagreement": "RF; good=clean, bad=collinear",
+            "distribution": "RF; good=random halves, bad=x2_decouple",
+        },
+        "metrics": results,
+    }
+
+    (HERE / "calibration.json").write_text(json.dumps(payload, indent=2))
+
+    print("\n" + "=" * 96)
+    for r in results:
+        if "error" in r:
+            print(f"{r['name']:42s} ERROR: {r['error']}")
+            continue
+        print(
+            f"{r['name']:42s} {r['direction']:6s} "
+            f"good={r['good_threshold']:>8.4f} warn={r['warn_threshold']:>8.4f} "
+            f"| med(good)={r['good_median']:>7.3f} med(bad)={r['bad_median']:>7.3f} "
+            f"| pass(good)={r['good_pass_rate']:.2f} flag(bad)={r['bad_flag_rate']:.2f}"
+        )
+    print("=" * 96)
+    print(f"wrote {HERE / 'calibration.json'}")
+
+
+if __name__ == "__main__":
+    sys.exit(main())
