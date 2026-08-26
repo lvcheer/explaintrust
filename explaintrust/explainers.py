@@ -66,6 +66,25 @@ def _shap_to_matrix(values) -> np.ndarray:
     return v.reshape(v.shape[0], v.shape[1])
 
 
+def _is_tree_model(model) -> bool:
+    """Best-effort detection of the tree/ensemble models TreeExplainer supports."""
+    return hasattr(model, "feature_importances_") and not hasattr(model, "coef_")
+
+
+def _is_linear_model(model) -> bool:
+    """Best-effort detection of the linear models LinearExplainer supports."""
+    return hasattr(model, "coef_")
+
+
+def _auto_shap_method(model) -> str:
+    """Pick a SHAP explainer appropriate for the model type."""
+    if _is_tree_model(model):
+        return "tree"
+    if _is_linear_model(model):
+        return "linear"
+    return "kernel"
+
+
 def shap_attributions(
     model,
     X,
@@ -79,17 +98,29 @@ def shap_attributions(
 
     Parameters
     ----------
-    method : {"tree", "kernel"}
+    method : {"tree", "linear", "kernel", "auto"}
         "tree" uses ``TreeExplainer`` (fast, exact for tree ensembles, but only
-        for tree models). "kernel" uses ``KernelExplainer`` (model-agnostic but
-        stochastic — use the same ``seed`` to reproduce).
+        for tree models). "linear" uses ``LinearExplainer`` (closed-form, for
+        linear models; requires ``X_background``). "kernel" uses
+        ``KernelExplainer`` (model-agnostic but stochastic — use the same
+        ``seed`` to reproduce). "auto" picks among the three based on the model.
     """
     import shap
 
     X = np.asarray(X, dtype=float)
 
+    if method == "auto":
+        method = _auto_shap_method(model)
+
     if method == "tree":
         explainer = shap.TreeExplainer(model)
+        values = explainer.shap_values(X)
+        return _shap_to_matrix(values)
+
+    if method == "linear":
+        if X_background is None:
+            raise ValueError("LinearExplainer requires X_background (reference data).")
+        explainer = shap.LinearExplainer(model, np.asarray(X_background, dtype=float))
         values = explainer.shap_values(X)
         return _shap_to_matrix(values)
 

@@ -10,8 +10,8 @@ plain Python (no pytest required):
 from __future__ import annotations
 
 import numpy as np
-from sklearn.ensemble import RandomForestRegressor
-from sklearn.linear_model import LinearRegression
+from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
+from sklearn.linear_model import LinearRegression, LogisticRegression
 
 from explaintrust import (
     lime_attributions,
@@ -133,6 +133,32 @@ def test_max_sensitivity_zero_for_constant_explainer():
         return np.array([1.0, 1.0, 1.0, 1.0])
     sens = max_sensitivity(const, X[0], X[:100], n_perturbations=10, seed=0)
     assert sens == 0.0
+
+
+def test_auto_shap_method_matches_explicit():
+    X, y = _linear_data()
+    yb = (y > 0).astype(int)
+
+    # Tree model -> should use TreeExplainer.
+    rf = RandomForestClassifier(n_estimators=20, max_depth=3, random_state=0).fit(X, yb)
+    assert np.allclose(
+        shap_attributions(rf, X[:3], method="auto"),
+        shap_attributions(rf, X[:3], method="tree"),
+    )
+
+    # Linear classifier -> should use LinearExplainer (log-odds space).
+    lr = LogisticRegression(max_iter=1000).fit(X, yb)
+    assert np.allclose(
+        shap_attributions(lr, X[:3], X_background=X[:100], method="auto"),
+        shap_attributions(lr, X[:3], X_background=X[:100], method="linear"),
+    )
+
+    # Linear regressor -> LinearExplainer (raw output space).
+    lm = LinearRegression().fit(X, y)
+    assert np.allclose(
+        shap_attributions(lm, X[:3], X_background=X[:100], method="auto"),
+        shap_attributions(lm, X[:3], X_background=X[:100], method="linear"),
+    )
 
 
 if __name__ == "__main__":
