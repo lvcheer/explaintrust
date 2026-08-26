@@ -126,9 +126,9 @@ meant to be overridden with domain knowledge.
 
 > 事后解释（post-hoc explanation）很容易生成，也很容易被过度信任。**explaintrust** 追问的是大多数 XAI 工具忽略的问题：*“SHAP/LIME 给了我一组特征归因——但我能相信它吗？”*
 
-它像一位严谨的审稿人那样评估解释——不看图表有多漂亮，而看它是否**忠实（faithful）、稳定（stable）、自洽（mutually consistent）、并在数据分布上鲁棒（robust across the distribution）**。
+本项目不看图表有多漂亮，而看它是否**忠实（faithful）、稳定（stable）、自洽（mutually consistent）、并在数据分布上鲁棒（robust across the distribution）**。
 
-本项目定位为**品牌 / 研究产物**：内核是一个干净、有文档、可引用的 Python 库（每个指标都按已发表的论文定义实现），外壳是一个轻量的交互式 Demo。
+本项目内核是一个干净、有文档、可引用的 Python 库（每个指标都按已发表的论文定义实现），外壳是一个轻量的交互式 Demo。
 
 ### 它测量什么
 
@@ -146,7 +146,7 @@ meant to be overridden with domain knowledge.
 
 ### 为什么这些细节重要（本项目的核心）
 
-一个“跑一下 SHAP 然后画张图”的工具会在几处地方微妙地出错。本库刻意在这些地方较真：
+一个“跑一下 SHAP 然后画张图”的工具会在几处地方微妙地出错。本库在如下地方展开讨论：
 
 1. **输出空间**。对分类器而言，SHAP 值在 *log-odds（对数几率）* 空间，LIME 权重在 *概率* 空间；直接比较二者没有意义。我们把一切统一到同一空间（分类器用 log-odds，回归器用原始输出）。
 2. **贡献 vs 梯度**。SHAP 值是 *贡献*（`Σ φ_i ≈ f(x) − E[f]`）；LIME 权重是 *斜率*（`f(x̃) ≈ f(x) + φ·Δx`）。把 SHAP 值喂给标准的 infidelity 公式是一个范畴错误——infidelity 适用于梯度解释，消融类指标适用于 SHAP。我们把这两个家族分开，并给每个指标标注适用对象。
@@ -157,7 +157,7 @@ meant to be overridden with domain knowledge.
 
 ### 安装与运行
 
-创建虚拟环境并以可编辑模式安装（会装好依赖，并让 `import explaintrust` 在任何目录可用）：
+创建虚拟环境并以可编辑模式安装（会直接装好依赖，并让 `import explaintrust` 在任何目录可用）：
 
 ```bash
 python3 -m venv .venv && source .venv/bin/activate
