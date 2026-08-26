@@ -1,0 +1,21 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+title: "explaintrust"
+abstract: >-
+  evaluate the trustworthiness of post-hoc explanations (SHAP, LIME) with
+  faithfulness, stability, cross-explainer consistency, and
+  distribution-verification metrics.
+authors:
+  - name: "lvcheer"
+version: 0.1.0
+date-released: 2026-08-26
+license: MIT
+repository-code: "https://github.com/lvcheer/explaintrust"
+url: "https://github.com/lvcheer/explaintrust"
+keywords:
+  - explainable-ai
+  - xai
+  - shap
+  - lime
+  - interpretability
+  - faithfulness
