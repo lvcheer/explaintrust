@@ -1,0 +1,19 @@
+# Byte-compiled / cache
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+
+# macOS
+.DS_Store
+
+# Local vendored dependencies (created by the sandboxed install step)
+.vendor/
+
+# Python virtualenv
+.venv/
+
+# Streamlit / matplotlib caches
+.streamlit/
+.streamlit_home/
+.mplconfig/

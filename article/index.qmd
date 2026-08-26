@@ -1,0 +1,168 @@
+---
+title: "Why your SHAP plot might be lying to you"
+subtitle: "An interactive guide to testing explanations before you trust them"
+author: "Your Name"
+date: last-modified
+description: >
+  SHAP and LIME give you beautiful feature-importance charts, but a chart is not
+  evidence. This interactive guide shows the four ways post-hoc explanations
+  mislead you, the two category errors almost every tool makes, and a checklist
+  you can run before you trust an explanation.
+bibliography: references.bib
+---
+
+::: {.lead}
+Type `shap.summary_plot(model, X)` and you get a beautiful, publication-ready
+picture of "what your model thinks". It *feels* like understanding. It often
+isn't. This guide shows you how to tell the difference — interactively.
+:::
+
+## The picture that feels like understanding
+
+<!-- TODO: 1-2 paragraphs. Open with the seduction: the SHAP bar chart as the
+     "I now understand my model" moment that everyone has and almost no one
+     checks. Frame the question the whole article answers: -->
+
+> **The question this article asks is not "how do I explain my model?", but
+> "how do I know the explanation is *true*?"**
+
+<!-- TODO: one paragraph setting up that almost no tool asks this, because the
+     tools that *produce* explanations have no incentive to check them. -->
+
+## Four ways an explanation can lie
+
+An explanation can look great and still be wrong in (at least) four independent
+ways. You should hold every explanation up against all four.
+
+### 1. It isn't faithful
+
+<!-- TODO: Define faithfulness. An explanation is faithful if it tracks what the
+     model *actually does* — perturb the input, and the explanation's predicted
+     change matches the model's real change. Show how a SHAP plot never tells
+     you this. Reference the two checks below. -->
+
+- **Removal-effect correlation** — if a feature is ranked important, removing it
+  should actually move the prediction.
+- **Comprehensiveness** — removing the top-k features should move the prediction
+  more than removing k random ones.
+
+<!-- TODO: 1 paragraph + a small static figure or inline number from the demo
+     (e.g. removal corr ≈ 0.59, comprehensiveness ≈ 4.7). Explain what "good"
+     looks like and that a beautiful plot can coexist with a mediocre score. -->
+
+### 2. The explainers disagree
+
+<!-- TODO: Define the disagreement problem (Krishna et al., CACM 2024). SHAP and
+     LIME answer subtly different questions; when they tell different stories
+     about the *same prediction*, neither should be trusted at face value. -->
+
+The punchline — and the part almost everyone gets wrong — is that **a big chunk
+of the "disagreement" you read about is a category error**. Try the toggle
+below: compare SHAP against LIME the *wrong* way, then the *right* way.
+
+```{ojs}
+// The centerpiece. data comes from article/scripts/generate_figures.py
+data = FileAttachment("figures/conversion.json").json()
+viewof use_contrib = Inputs.toggle({label: "Put LIME on the same scale as SHAP (contribution scale)", value: true})
+lime = use_contrib ? data.contrib_lime : data.raw_lime
+rank_corr = use_contrib ? data.after_rank_corr : data.before_rank_corr
+```
+
+```{ojs}
+// Big number readout
+display(htl.html`<div class="big-number">SHAP vs LIME rank correlation:
+  <span class="${rank_corr > 0.4 ? 'good' : 'bad'}">${rank_corr.toFixed(2)}</span></div>
+  <div style="color:#666">averaged over ${data.n_instances} instances · +1 = perfect agreement, 0 = none, −1 = opposite</div>`)
+```
+
+```{ojs}
+// SHAP vs LIME scatter. Agreement = points on the diagonal.
+scatter_data = data.features.map((f, i) => ({feature: f, shap: data.shap[i], lime: lime[i]}))
+Plot.plot({
+  height: 320,
+  marks: [
+    Plot.line([[-0.7, -0.7], [0.7, 0.7]], {stroke: "#ccc", strokeDasharray: "4 4"}),
+    Plot.dot(scatter_data, {x: "shap", y: "lime", r: 6, fill: "#636EFA", tip: true})
+  ],
+  x: {label: "SHAP attribution"},
+  y: {label: use_contrib ? "LIME attribution (contribution scale)" : "LIME attribution (raw weights)"},
+  style: {fontSize: 12}
+})
+```
+
+<!-- TODO: 2 paragraphs explaining the two category errors that cause this:
+     (a) output space — SHAP is in log-odds, LIME in probability;
+     (b) contribution vs gradient — SHAP is Σφ≈f(x)−E[f], LIME is f(x̃)≈f(x)+φ·Δx.
+     Stress: this is not a "both tools are bad" story, it's a "compare like with
+     like" story. After the fix, the *residual* disagreement is the real signal. -->
+
+::: {.quote}
+Most "SHAP and LIME completely disagree" blog posts are measuring a category
+error. The real, remaining disagreement is smaller — and that's the part worth
+investigating.
+:::
+
+### 3. It doesn't reproduce
+
+<!-- TODO: Run the same stochastic explainer with a different seed. If the
+     answer changes, the explanation is not something you can act on. Show the
+     run-to-run stability metric (rank corr, sign agreement, top-k overlap).
+     Note TreeSHAP is deterministic (trivially stable) while KernelSHAP/LIME
+     are not — and that determinism is not the same as correctness. -->
+
+### 4. It doesn't generalize across the distribution
+
+<!-- TODO: your differentiator (解释分发校验). A single explanation is a point
+     estimate. Ask whether the *story* (the feature-importance ranking) holds
+     across subpopulations and under distribution shift. Introduce
+     cross-segment rank stability and top-k flip rate. This is the least-known
+     and most under-supplied check. -->
+
+## A worked example: collinearity quietly lies to you
+
+<!-- TODO: set up the synthetic experiment. Ground truth: x0, x1 are causal; x2
+     is collinear with x0 but NOT causal; the rest is noise. This is the setup
+     where explanations misbehave in the wild. -->
+
+![Collinearity makes LIME credit a non-causal feature (x2), while SHAP resists it a little better.](figures/endpoints.png)
+
+<!-- TODO: 2 paragraphs. On the left (ρ=0) both explainers correctly ignore x2.
+     On the right (ρ=0.85) LIME starts crediting x2 as if it were important —
+     teaching you a false causal story. Explain *why* collinearity does this
+     (indistinguishable features → attribution is underdetermined). Tie back to
+     "faithfulness" and "generalization": the model is fine, the explanation is
+     not. -->
+
+## So what should you do instead?
+
+A trust battery — run these before you trust any post-hoc explanation:
+
+| Check | Metric | Good sign |
+|---|---|---|
+| Faithful? | removal-effect correlation, comprehensiveness | corr high; ratio ≫ 1 |
+| Reproducible? | run-to-run rank/sign/top-k stability | corr ≈ 1 |
+| Internally consistent? | SHAP vs LIME agreement (same scale) | rank corr high |
+| Generalizes? | cross-segment stability, top-k flip rate | stable, low flip |
+
+<!-- TODO: one paragraph on the philosophy — measure, don't eyeball; separate
+     measurement (the metrics) from interpretation (your domain judgment);
+     thresholds are heuristics you calibrate, not laws. -->
+
+The library that produced every number in this article is open source:
+[**explaintrust**](https://github.com/yourname/explaintrust) — a small,
+opinionated Python package that runs this battery for you.
+
+## Caveats
+
+<!-- TODO: scope honesty. Tabular data + SHAP + LIME only (v0.1). Thresholds are
+     sensible defaults, not calibrated claims. These metrics are necessary but
+     not sufficient — no single number certifies an explanation. Explainability
+     is a property of the model+data+audience, not a badge you print. -->
+
+## References {.unnumbered}
+
+<!-- TODO: fill from references.bib, or inline:
+     - Yeh et al., "On the (In)fidelity and Sensitivity of Explanations", NeurIPS 2019
+     - DeYoung et al., "ERASER", ACL 2020
+     - Krishna et al., "The Disagreement Problem in Explainable Machine Learning", CACM 2024
+     - (your own faithfulness/distribution work, when it lands) -->

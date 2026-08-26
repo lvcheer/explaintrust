@@ -1,0 +1,30 @@
+/* explaintrust — article styles */
+
+body {
+  max-width: 70ch;
+}
+
+/* Big readout numbers in the interactive cells */
+.big-number {
+  font-size: 2.2rem;
+  font-weight: 700;
+  line-height: 1.1;
+  margin: 0.5rem 0;
+}
+.big-number .good { color: #1a7f37; }
+.big-number .bad  { color: #cf222e; }
+
+/* Lead paragraph */
+.lead {
+  font-size: 1.15rem;
+  color: #555;
+}
+
+/* Pull-quote style callouts */
+.quote {
+  border-left: 4px solid #636EFA;
+  padding-left: 1rem;
+  color: #333;
+  font-style: italic;
+  margin: 1.5rem 0;
+}

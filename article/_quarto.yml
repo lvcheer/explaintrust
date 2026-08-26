@@ -1,0 +1,27 @@
+project:
+  type: website
+  output-dir: _site
+
+website:
+  title: "Why your SHAP plot might be lying to you"
+  page-navigation: true
+  repo-url: https://github.com/yourname/explaintrust
+  repo-actions: [edit, source]
+
+format:
+  html:
+    theme: cosmo
+    toc: true
+    toc-depth: 3
+    css: styles.css
+    code-fold: true
+    code-tools: true
+    page-layout: full
+    include-in-header:
+      text: |
+        <meta name="description" content="An interactive guide to testing post-hoc explanations (SHAP, LIME) before you trust them.">
+        <meta property="og:title" content="Why your SHAP plot might be lying to you">
+        <meta property="og:type" content="article">
+
+execute:
+  freeze: auto

@@ -1,0 +1,9 @@
+numpy>=1.24
+pandas>=2.0
+scipy>=1.10
+scikit-learn>=1.3
+shap>=0.44
+lime>=0.2
+streamlit>=1.45
+plotly>=5.0
+tqdm>=4.0
