@@ -20,6 +20,7 @@ Built as a **brand / research artifact**: the kernel is a clean, documented, cit
 | Robustness | max-sensitivity | any | lower |
 | Reproducibility | run-to-run rank / sign / top-k stability | stochastic explainers | higher |
 | Consistency | SHAP vs LIME sign/rank/top-k disagreement | cross-explainer | — |
+| Consistency | SHAP vs LIME magnitude disagreement (per-feature gap) | cross-explainer | lower |
 | Generalization | cross-segment rank stability & top-k flip rate | any | higher / lower |
 
 **The output is a "trust report"**: a scorecard of every metric with a verdict

@@ -230,7 +230,7 @@ def disagreement():
     """good = collinearity removed (train AND test); bad = high collinearity.
     Uses a low-dimensional feature set (x0..x3) so the x0/x2 disagreement is not
     diluted by the six noise features' random ranks."""
-    sign_g, sign_b, rank_g, rank_b, top_g, top_b = [], [], [], [], [], []
+    sign_g, sign_b, rank_g, rank_b, top_g, top_b, mag_g, mag_b = [], [], [], [], [], [], [], []
     for seed in SEEDS:
         for label, (X, y, names) in (("good", _clean_data(seed)), ("bad", _collinear(seed))):
             X, names = _lowdim(X, names)
@@ -247,14 +247,17 @@ def disagreement():
                     sign_g.append(d["sign_disagreement"])
                     rank_g.append(d["rank_corr"])
                     top_g.append(d["topk_overlap"])
+                    mag_g.append(d["magnitude_disagreement"])
                 else:
                     sign_b.append(d["sign_disagreement"])
                     rank_b.append(d["rank_corr"])
                     top_b.append(d["topk_overlap"])
+                    mag_b.append(d["magnitude_disagreement"])
     return [
         propose("SHAP vs LIME sign disagreement", "lower", sign_g, sign_b),
         propose("SHAP vs LIME rank agreement", "higher", rank_g, rank_b),
         propose(f"SHAP vs LIME top-{TOPK} overlap", "higher", top_g, top_b),
+        propose(f"SHAP vs LIME magnitude disagreement (top-{TOPK})", "lower", mag_g, mag_b),
     ]
 
 

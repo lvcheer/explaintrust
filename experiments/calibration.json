@@ -141,6 +141,18 @@
       "bad_flag_rate": 0.0
     },
     {
+      "name": "SHAP vs LIME magnitude disagreement (top-3)",
+      "direction": "lower",
+      "good_threshold": 1.4087,
+      "warn_threshold": 0.964,
+      "good_median": 1.2237,
+      "bad_median": 1.1943,
+      "n_good": 80,
+      "n_bad": 80,
+      "good_pass_rate": 0.8,
+      "bad_flag_rate": 0.175
+    },
+    {
       "name": "Cross-segment rank stability",
       "direction": "higher",
       "good_threshold": 1.0,

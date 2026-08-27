@@ -144,16 +144,18 @@ def _run_battery(
     stability = cross_run_stability(lime_seeded, n_runs=n_runs, top_k=3)
 
     # SHAP vs LIME disagreement (contribution scale)
-    dis_sign, dis_rank, dis_topk = [], [], []
+    dis_sign, dis_rank, dis_topk, dis_mag = [], [], [], []
     for i in range(n_explain):
         d = explainer_disagreement(shap_attr[i], lime_contrib[i], top_k=3)
         dis_sign.append(d["sign_disagreement"])
         dis_rank.append(d["rank_corr"])
         dis_topk.append(d["topk_overlap"])
+        dis_mag.append(d["magnitude_disagreement"])
     disagreement = {
         "sign_disagreement": float(np.mean(dis_sign)),
         "rank_corr": float(np.nanmean(dis_rank)),
         "topk_overlap": float(np.mean(dis_topk)),
+        "magnitude_disagreement": float(np.nanmean(dis_mag)),
     }
 
     # Distribution verification

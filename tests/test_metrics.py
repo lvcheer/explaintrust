@@ -116,6 +116,19 @@ def test_identical_attributions_have_zero_disagreement():
     assert d["sign_disagreement"] == 0.0
     assert d["rank_corr"] == 1.0
     assert d["topk_overlap"] == 1.0
+    assert d["magnitude_disagreement"] == 0.0
+
+
+def test_magnitude_disagreement_detects_scale_gap():
+    # Same ranking and signs, but a large magnitude gap on the top feature:
+    # rank/sign/overlap agreement all read "perfect", magnitude disagreement must not.
+    a = np.array([0.5, -0.3, 0.1, 0.0])
+    b = np.array([2.0, -0.3, 0.1, 0.0])
+    d = explainer_disagreement(a, b, top_k=2)
+    assert d["rank_corr"] == 1.0
+    assert d["sign_disagreement"] == 0.0
+    assert d["topk_overlap"] == 1.0
+    assert d["magnitude_disagreement"] > 0.0
 
 
 def test_cross_segment_stability_perfect_when_identical():

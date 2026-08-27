@@ -54,6 +54,7 @@ recover the ground-truth labels on the same data.
 | SHAP vs LIME sign disagreement | ↓ | 0.250 | 0.000 | 0.500 | 0.000 | .99 | .03 | ❌ inverted |
 | SHAP vs LIME rank agreement | ↑ | 0.800 | 1.000 | 0.400 | 1.000 | .96 | .03 | ❌ inverted |
 | SHAP vs LIME top-3 overlap | ↑ | 1.000 | 1.000 | 0.667 | 1.000 | 1.00 | .00 | ❌ saturated |
+| SHAP vs LIME magnitude disagreement | ↓ | 1.224 | 1.194 | 1.409 | 0.964 | .80 | .17 | ❌ no separation |
 | Cross-segment rank stability | ↑ | 1.000 | 0.900 | 1.000 | 1.000 | .90 | .50 | ⚠️ weak |
 | Top-3 flip rate across segments | ↓ | 0.000 | 0.000 | 0.000 | 0.000 | 1.00 | .00 | ❌ saturated |
 
@@ -78,22 +79,29 @@ recover the ground-truth labels on the same data.
    the x0/x2 credit (a *magnitude* disagreement), while they still agree on the
    *set* and *ranking* of important features. So the rank/sign/top-k agreement
    metrics read **higher** under collinearity — they say "good" exactly when the
-   explanation is most misleading. The metric that *would* catch this,
-   `per_feature_gap` (normalized |a−b| per feature), is already computed by
-   `explainer_disagreement` but is **not scored** in the report.
+   explanation is most misleading.
 
-4. **Set- and sign-based metrics saturate.** Sign stability is 1.0 until LIME
+4. **Even a magnitude-disagreement metric does not cleanly separate.** We added
+   `magnitude_disagreement` (mean per-feature *relative* |SHAP−LIME| gap over
+   the top-k features) to the scorecard and re-ran the study: it reads 1.22 on
+   clean vs 1.19 on collinear data — no separation. SHAP and LIME carry an
+   *inherent* magnitude mismatch (~1.2) in every regime, and the collinearity
+   effect itself is tiny in absolute terms (LIME credits x2 at ≈ +0.03 vs SHAP's
+   ≈ 0.0). The metric still measures per-feature magnitude agreement that
+   rank/sign/top-k cannot, but it is not a clean "good vs bad" signal either.
+
+5. **Set- and sign-based metrics saturate.** Sign stability is 1.0 until LIME
    is under-sampled to 20; top-k flip rate stays 0.0 because the top-3 *set*
    never changes (only its order); top-k overlap saturates at 1.0. These are
    coarse detectors that only fire on dramatic changes.
 
-## Recommendation
+## Outcome
 
-Add a **magnitude-disagreement** metric to the scorecard by scoring the
-already-computed `per_feature_gap` (e.g., its mean over the top-k features).
-This is the missing piece the study exposes: it is what actually separates the
-collinear "SHAP and LIME tell different stories" regime from the clean one, and
-it is the natural next experiment axis for the disagreement family.
+The actionable result of this study is the **magnitude-disagreement metric**
+now scored in `report.py` (a per-feature relative gap that rank/sign/top-k
+agreement cannot express). Its threshold is a documented default (good ≤ 1.0,
+warn ≤ 1.5), *not* a fitted value, because — as finding 4 shows — this axis
+does not yield a clean separation on synthetic data.
 
 ## Applying the results
 

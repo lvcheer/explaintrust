@@ -192,6 +192,7 @@ def build_trust_report(
     sign_dis = disagreement.get("sign_disagreement", float("nan"))
     rank_agree = disagreement.get("rank_corr", float("nan"))
     top_overlap = disagreement.get("topk_overlap", float("nan"))
+    magnitude_dis = disagreement.get("magnitude_disagreement", float("nan"))
     results.append(
         MetricResult(
             name="SHAP vs LIME sign disagreement",
@@ -218,6 +219,18 @@ def build_trust_report(
             direction="higher",
             verdict=_verdict("disagreement_topk", top_overlap, "higher", 0.66, 0.33),
             explanation="Overlap of the most important features named by each.",
+        )
+    )
+    results.append(
+        MetricResult(
+            name=f"SHAP vs LIME magnitude disagreement (top-{top_k})",
+            value=magnitude_dis,
+            direction="lower",
+            verdict=_verdict("disagreement_magnitude", magnitude_dis, "lower", 1.0, 1.5),
+            explanation="Mean per-feature relative |SHAP − LIME| gap over the most "
+                        "important features (0 = agree, 2 = opposite). Catches how much "
+                        "the two explainers disagree on the *size* of each important "
+                        "feature's effect — something rank/sign/overlap agreement miss.",
         )
     )
 
