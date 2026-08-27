@@ -27,9 +27,9 @@
     "faithfulness": "RandomForestClassifier(n_estimators=60, max_depth=4) on clean data",
     "lime_infidelity": "LogisticRegression on clean data",
     "sensitivity": "RF; good=LIME(2000), bad=TreeSHAP",
-    "stability": "RF; good=LIME(2000), bad=LIME(50)",
-    "disagreement": "RF; good=clean, bad=collinear",
-    "distribution": "RF; good=random halves, bad=x2_decouple"
+    "stability": "RF; good=LIME(2000), bad=LIME(20)",
+    "disagreement": "RF on x0..x3; good=clean, bad=collinear",
+    "distribution": "RF on heterogeneous 4-feature data; good=random halves, bad=split by x0"
   },
   "metrics": [
     {
@@ -84,9 +84,9 @@
       "name": "Run-to-run rank stability",
       "direction": "higher",
       "good_threshold": 0.865,
-      "warn_threshold": 0.7076,
+      "warn_threshold": 0.6354,
       "good_median": 0.9097,
-      "bad_median": 0.6248,
+      "bad_median": 0.5485,
       "n_good": 20,
       "n_bad": 20,
       "good_pass_rate": 0.8,
@@ -98,59 +98,59 @@
       "good_threshold": 1.0,
       "warn_threshold": 1.0,
       "good_median": 1.0,
-      "bad_median": 1.0,
+      "bad_median": 0.6667,
       "n_good": 20,
       "n_bad": 20,
       "good_pass_rate": 1.0,
-      "bad_flag_rate": 0.45
+      "bad_flag_rate": 0.65
     },
     {
       "name": "SHAP vs LIME sign disagreement",
       "direction": "lower",
-      "good_threshold": 0.42,
-      "warn_threshold": 0.2,
-      "good_median": 0.2,
-      "bad_median": 0.3,
+      "good_threshold": 0.5,
+      "warn_threshold": 0.0,
+      "good_median": 0.25,
+      "bad_median": 0.0,
       "n_good": 80,
       "n_bad": 80,
-      "good_pass_rate": 0.8,
-      "bad_flag_rate": 0.113
+      "good_pass_rate": 0.988,
+      "bad_flag_rate": 0.025
     },
     {
       "name": "SHAP vs LIME rank agreement",
       "direction": "higher",
-      "good_threshold": 0.4691,
-      "warn_threshold": 0.857,
-      "good_median": 0.7152,
-      "bad_median": 0.7515,
+      "good_threshold": 0.4,
+      "warn_threshold": 1.0,
+      "good_median": 0.8,
+      "bad_median": 1.0,
       "n_good": 80,
       "n_bad": 80,
-      "good_pass_rate": 0.8,
-      "bad_flag_rate": 0.125
+      "good_pass_rate": 0.963,
+      "bad_flag_rate": 0.025
     },
     {
       "name": "SHAP vs LIME top-3 overlap",
       "direction": "higher",
       "good_threshold": 0.6667,
       "warn_threshold": 1.0,
-      "good_median": 0.6667,
+      "good_median": 1.0,
       "bad_median": 1.0,
       "n_good": 80,
       "n_bad": 80,
-      "good_pass_rate": 0.925,
-      "bad_flag_rate": 0.05
+      "good_pass_rate": 1.0,
+      "bad_flag_rate": 0.0
     },
     {
       "name": "Cross-segment rank stability",
       "direction": "higher",
-      "good_threshold": 0.9515,
-      "warn_threshold": 0.9879,
-      "good_median": 0.9879,
-      "bad_median": 0.9879,
+      "good_threshold": 1.0,
+      "warn_threshold": 1.0,
+      "good_median": 1.0,
+      "bad_median": 0.9,
       "n_good": 20,
       "n_bad": 20,
-      "good_pass_rate": 0.85,
-      "bad_flag_rate": 0.1
+      "good_pass_rate": 0.9,
+      "bad_flag_rate": 0.5
     },
     {
       "name": "Top-3 flip rate across segments",

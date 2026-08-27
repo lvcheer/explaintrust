@@ -109,6 +109,28 @@ def _rf(seed):
     return RandomForestClassifier(n_estimators=60, max_depth=4, random_state=seed)
 
 
+def _lowdim(X, names):
+    """Keep the informative columns (x0, x1, x2, x3) and drop the six noise
+    features, so disagreement in x0/x1/x2 is not diluted by noise ranks."""
+    cols = [0, 1, 2, 3]
+    return X[:, cols], [names[c] for c in cols]
+
+
+def _heterogeneous(seed):
+    """4-feature dataset with a strong x0*x1 interaction: x1 matters only when
+    x0 > 0. Built so that segmenting by x0 flips x1's importance ranking."""
+    rng = np.random.default_rng(seed)
+    x0 = rng.normal(0.0, 1.0, N)
+    x1 = rng.normal(0.0, 1.0, N)
+    x2 = rng.normal(0.0, 1.0, N)
+    x3 = rng.normal(0.0, 1.0, N)
+    X = np.stack([x0, x1, x2, x3], axis=1)
+    logit = 1.5 * x0 + 0.5 * x2 + 3.0 * (x0 > 0) * x1 - 0.2
+    prob = 1.0 / (1.0 + np.exp(-logit))
+    y = (rng.random(N) < prob).astype(int)
+    return X, y, ["x0", "x1", "x2", "x3"]
+
+
 def faithfulness():
     """good = real SHAP on clean data; bad = same magnitudes shuffled."""
     removal_g, removal_b, comp_g, comp_b = [], [], [], []
@@ -190,7 +212,7 @@ def stability():
             return lime_attributions(model, Xe, bg, feature_names=names, num_samples=2000, seed=seed)[0]
 
         def lime_lo(seed: int):
-            return lime_attributions(model, Xe, bg, feature_names=names, num_samples=50, seed=seed)[0]
+            return lime_attributions(model, Xe, bg, feature_names=names, num_samples=20, seed=seed)[0]
 
         hi = cross_run_stability(lime_hi, n_runs=5, top_k=TOPK)
         lo = cross_run_stability(lime_lo, n_runs=5, top_k=TOPK)
@@ -206,10 +228,12 @@ def stability():
 
 def disagreement():
     """good = collinearity removed (train AND test); bad = high collinearity.
-    The model is fit on the matching regime so SHAP and LIME face the same data."""
+    Uses a low-dimensional feature set (x0..x3) so the x0/x2 disagreement is not
+    diluted by the six noise features' random ranks."""
     sign_g, sign_b, rank_g, rank_b, top_g, top_b = [], [], [], [], [], []
     for seed in SEEDS:
         for label, (X, y, names) in (("good", _clean_data(seed)), ("bad", _collinear(seed))):
+            X, names = _lowdim(X, names)
             Xtr, Xte, ytr, _ = train_test_split(X, y, test_size=0.3, random_state=seed)
             model = _rf(seed).fit(Xtr, ytr)
             bg = Xtr[:BG]
@@ -235,29 +259,26 @@ def disagreement():
 
 
 def distribution():
-    """good = two random halves of in-distribution data (identical stories);
-    bad = in-distribution vs. decoupled-x2 data (collinearity breaks, so the
-    feature-importance story flips across the two segments)."""
+    """good = two random halves (homogeneous, identical stories);
+    bad = split by x0, where a strong x0*x1 interaction makes x1's importance
+    flip across the two segments (heterogeneous effects)."""
     rank_g, rank_b, flip_g, flip_b = [], [], [], []
     for seed in SEEDS:
-        X, y, _ = _collinear(seed)
+        X, y, _ = _heterogeneous(seed)
         Xtr, Xte, ytr, _ = train_test_split(X, y, test_size=0.3, random_state=seed)
         model = _rf(seed).fit(Xtr, ytr)
 
-        # good: two random halves of the in-distribution holdout
+        # good: two random halves -> identical importance stories
         n_half = len(Xte) // 2
         idx = np.random.default_rng(seed).permutation(len(Xte))
         seg_g = np.concatenate([np.zeros(n_half), np.ones(len(Xte) - n_half)]).astype(int)
         A_g = shap_attributions(model, Xte[idx], method="tree")
         g = cross_segment_stability(Xte[idx], seg_g, A_g, top_k=TOPK)
 
-        # bad: in-distribution vs decoupled-x2 (collinearity broken)
-        Xs, ys, _ = make_collinear_dataset(n=len(Xte), seed=seed + 7)
-        Xs, _, _ = shift_distribution(Xs, ys, shift="x2_decouple", seed=seed + 1)
-        X_both = np.vstack([Xte, Xs])
-        seg_b = np.concatenate([np.zeros(len(Xte)), np.ones(len(Xs))]).astype(int)
-        A_b = shap_attributions(model, X_both, method="tree")
-        b = cross_segment_stability(X_both, seg_b, A_b, top_k=TOPK)
+        # bad: split by x0 -> x1 matters only on the x0>0 side, so its rank flips
+        seg_b = (Xte[:, 0] > np.median(Xte[:, 0])).astype(int)
+        A_b = shap_attributions(model, Xte, method="tree")
+        b = cross_segment_stability(Xte, seg_b, A_b, top_k=TOPK)
 
         rank_g.append(g["rank_corr"])
         rank_b.append(b["rank_corr"])
@@ -286,9 +307,9 @@ def main() -> None:
             "faithfulness": "RandomForestClassifier(n_estimators=60, max_depth=4) on clean data",
             "lime_infidelity": "LogisticRegression on clean data",
             "sensitivity": "RF; good=LIME(2000), bad=TreeSHAP",
-            "stability": "RF; good=LIME(2000), bad=LIME(50)",
-            "disagreement": "RF; good=clean, bad=collinear",
-            "distribution": "RF; good=random halves, bad=x2_decouple",
+            "stability": "RF; good=LIME(2000), bad=LIME(20)",
+            "disagreement": "RF on x0..x3; good=clean, bad=collinear",
+            "distribution": "RF on heterogeneous 4-feature data; good=random halves, bad=split by x0",
         },
         "metrics": results,
     }
