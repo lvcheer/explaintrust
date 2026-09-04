@@ -68,8 +68,8 @@ MODELS = {
 # comparison table; update if report.py changes).
 CURRENT_DEFAULTS = {
     "removal_corr": ("higher", 0.5, 0.2),
-    "comprehensiveness": ("higher", 1.5, 1.0),
-    "infidelity": ("lower", 0.1, 0.5),
+    "comprehensiveness": ("higher", 1.0, 1.0),  # now a >1 "not noise" gate
+    "infidelity": ("lower", 0.5, 1.0),          # now normalized (fraction of variance)
     "sensitivity": ("lower", 0.5, 2.0),
     "stability_rank": ("higher", 0.9, 0.7),
     "stability_rank_topk": ("higher", 0.9, 0.7),

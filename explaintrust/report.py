@@ -126,28 +126,37 @@ def build_trust_report(
                         "important features really matter.",
         )
     )
+    # Comprehensiveness is a qualitative "not noise" gate, not a graded score:
+    # its absolute size saturates and is not comparable across datasets, but
+    # "> 1" (top-k removal beats random removal) is a robust yes/no signal.
+    if np.isnan(comprehensiveness):
+        comp_verdict = "info"
+    else:
+        comp_verdict = "good" if comprehensiveness > 1.0 else "bad"
     results.append(
         MetricResult(
             name="SHAP comprehensiveness (top-k vs random)",
             value=comprehensiveness,
             direction="higher",
-            verdict=_verdict("comprehensiveness", comprehensiveness, "higher", 1.5, 1.0),
-            explanation="How much removing the top-k features moves the prediction, "
-                        "relative to removing k random features. > 1 = the ranking is "
-                        "not noise; ~1 = indistinguishable from random.",
+            verdict=comp_verdict,
+            explanation="A 'not noise' gate: removing the top-k features moves the "
+                        "prediction more than removing k random ones. > 1 = the ranking "
+                        "is informative; ≤ 1 = indistinguishable from random. (The ratio's "
+                        "absolute size is not comparable across datasets.)",
         )
     )
 
     # --- faithfulness (LIME local surrogate) --------------------------------
     results.append(
         MetricResult(
-            name="LIME local fidelity (infidelity)",
+            name="LIME local fidelity (infidelity, normalized)",
             value=lime_infidelity,
             direction="lower",
-            verdict=_verdict("lime_infidelity", lime_infidelity, "lower", 0.1, 0.5),
-            explanation="Gap between LIME's local linear surrogate and the model's "
-                        "actual output change under perturbation. Low = the linear "
-                        "approximation faithfully tracks the model locally.",
+            verdict=_verdict("lime_infidelity", lime_infidelity, "lower", 0.5, 1.0),
+            explanation="Normalized gap between LIME's local linear surrogate and the "
+                        "model's actual output change (fraction of the change's variance). "
+                        "< 0.5 = the surrogate explains most of the change; ~1 = no better "
+                        "than predicting zero change; > 1 = worse than nothing.",
         )
     )
 

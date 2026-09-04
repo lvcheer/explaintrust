@@ -17,8 +17,8 @@ Reproduce with `python3 experiments/benchmark_real_data.py`
 | Metric | dir | Adult | Diabetes | pooled | P10 | P90 | default (good/warn) | verdict@median |
 |---|---|---|---|---|---|---|---|---|
 | removal-effect correlation | ↑ | 0.425 | 0.477 | 0.454 | 0.371 | 0.506 | 0.5 / 0.2 | warn |
-| comprehensiveness ratio | ↑ | 62.6 | 10.6 | 28.5 | 7.2 | 428.7 | 1.5 / 1.0 | good |
-| LIME infidelity | ↓ | 0.234 | 0.027 | 0.097 | 0.012 | 1.037 | 0.1 / 0.5 | good |
+| comprehensiveness ratio | ↑ | 62.6 | 10.6 | 28.5 | 7.2 | 428.7 | `> 1` gate | good |
+| LIME infidelity (normalized) | ↓ | 0.774 | 0.868 | 0.827 | 0.080 | 1.398 | 0.5 / 1.0 | warn |
 | max-sensitivity | ↓ | 0.008 | 0.022 | 0.011 | 0.000 | 0.816 | 0.5 / 2.0 | good |
 | run-to-run rank stability (all-d) | ↑ | 0.416 | 0.475 | 0.460 | 0.274 | 1.000 | 0.9 / 0.7 | **bad** |
 | run-to-run rank stability (**top-k**) | ↑ | 1.000 | 1.000 | 1.000 | 0.940 | 1.000 | 0.9 / 0.7 | **good** |
@@ -66,19 +66,25 @@ median. ↑ higher-is-better, ↓ lower-is-better.*)
 
 ## Resolution
 
-The dimensionality problem is now fixed in the library:
+All three findings are now addressed in the library:
 
-* `cross_run_stability` and `explainer_disagreement` return a **`topk_rank_corr`**
-  (Spearman over the top-k features only), and `report.py` scores that instead of
-  the all-features rank correlation. On real data the top-k versions read
-  **1.00** (stability) and **0.75** (agreement) — "good" — while the all-features
-  versions read 0.46 ("bad"/"warn"). The scorecard now reports
-  "… rank stability/agreement (top-k)".
+* **Dimensionality (rank stability/agreement).** `cross_run_stability` and
+  `explainer_disagreement` return a **`topk_rank_corr`** (Spearman over the
+  top-k features only), and `report.py` scores that instead of the all-features
+  rank correlation. On real data the top-k versions read **1.00** (stability)
+  and **0.75** (agreement) — "good" — while the all-features versions read 0.46.
 
-Still open (not yet baked into `report.py`):
+* **Comprehensiveness** is now a `> 1` "not noise" **gate** in `report.py`,
+  not a graded score (its absolute size saturates on high-dimensional data).
 
-* **Comprehensiveness** should stay a `> 1` "not noise" gate, not a graded score,
-  on high-dimensional data (it saturates at median 28.5).
-* **Split thresholds by dataset/scale where transferability fails** — LIME
-  infidelity (0.23 vs 0.03) and top-k flip rate (1.0 vs 0.0) cannot share one
-  threshold; report a per-dataset reference distribution alongside the verdict.
+* **LIME infidelity** is now **normalized** by the variance of the model's
+  output change, making it a scale-free fraction (≈1 = "no better than
+  predicting zero change"). This fixed the transferability: Adult 0.77 vs
+  Diabetes 0.87, instead of the raw 0.23 vs 0.03 (a 9× gap).
+
+Remaining known limitation:
+
+* **Top-k flip rate is coarse and dataset-specific** (1.0 on Adult vs 0.0 on
+  Diabetes — with three segments it can only be 0 / 0.5 / 1.0). It is kept as a
+  coarse "does the story flip across segments" signal, not a finely-gradable
+  score; the thresholds treat 0 as good and 1 as bad.

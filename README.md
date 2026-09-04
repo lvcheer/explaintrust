@@ -16,7 +16,7 @@ Built as a **brand / research artifact**: the kernel is a clean, documented, cit
 |---|---|---|---|
 | Faithfulness | removal-effect correlation | SHAP (contribution) | higher |
 | Faithfulness | comprehensiveness ratio (top-k vs random) | SHAP (contribution) | higher (> 1 = not noise) |
-| Faithfulness | infidelity (local linear surrogate) | LIME (gradient) | lower |
+| Faithfulness | infidelity (normalized local linear surrogate) | LIME (gradient) | lower |
 | Robustness | max-sensitivity | any | lower |
 | Reproducibility | run-to-run rank / sign / top-k stability | stochastic explainers | higher |
 | Consistency | SHAP vs LIME sign/rank/top-k disagreement | cross-explainer | — |

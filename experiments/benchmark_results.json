@@ -29,11 +29,11 @@
     "removal_corr": {
       "direction": "higher",
       "pooled_median": 0.4543,
-      "pooled_p10": 0.3789,
-      "pooled_p90": 0.5083,
+      "pooled_p10": 0.3771,
+      "pooled_p90": 0.5136,
       "per_dataset_median": {
-        "adult": 0.4255,
-        "diabetes": 0.4767
+        "adult": 0.4249,
+        "diabetes": 0.4812
       },
       "current_default": [
         0.5,
@@ -50,22 +50,22 @@
         "diabetes": 10.6126
       },
       "current_default": [
-        1.5,
+        1.0,
         1.0
       ]
     },
     "infidelity": {
       "direction": "lower",
-      "pooled_median": 0.0968,
-      "pooled_p10": 0.0123,
-      "pooled_p90": 1.037,
+      "pooled_median": 0.8274,
+      "pooled_p10": 0.0803,
+      "pooled_p90": 1.3981,
       "per_dataset_median": {
-        "adult": 0.2341,
-        "diabetes": 0.0266
+        "adult": 0.7745,
+        "diabetes": 0.868
       },
       "current_default": [
-        0.1,
-        0.5
+        0.5,
+        1.0
       ]
     },
     "sensitivity": {

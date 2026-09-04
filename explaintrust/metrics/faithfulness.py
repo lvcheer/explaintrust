@@ -60,10 +60,22 @@ def infidelity(
     n_perturbations: int = 200,
     strategy: str = "gaussian",
     seed: int = 0,
+    normalize: bool = True,
 ) -> float:
     """Infidelity of a *gradient/coefficient-scale* explanation (lower better).
 
     INFD = E[(φ·(x̃ − x) − (f(x̃) − f(x)))²]
+
+    By default this is **normalized** by the variance of the model's actual
+    output change, ``var(f(x̃) − f(x))``, so it becomes a scale-free fraction:
+
+    * ``< 1``  — the explanation explains some of the output change;
+    * ``≈ 1``  — no better than always predicting zero change (useless);
+    * ``> 1``  — worse than predicting zero change.
+
+    Without normalization (``normalize=False``) the value is in squared
+    output units and therefore depends on the model's and dataset's scale —
+    which is why the raw value does not transfer across datasets.
 
     ``φ`` must be a local-linear explanation (LIME weights, gradients, etc.).
     **Do not pass SHAP values** — they are contributions, not gradients, and the
@@ -83,7 +95,10 @@ def infidelity(
     explained = delta_x @ attr
     actual = np.asarray(model(x_tilde)).ravel() - float(model(x[None, :])[0])
 
-    return float(np.mean((explained - actual) ** 2))
+    infid = float(np.mean((explained - actual) ** 2))
+    if normalize:
+        infid = infid / (float(np.var(actual)) + 1e-12)
+    return infid
 
 
 def removal_effect_correlation(
