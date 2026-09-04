@@ -7,12 +7,10 @@ Run from the repo root:
 Two modes:
 
 * **Synthetic demo** — trains on a dataset with a known generative process
-  (collinearity + interaction) so you can see the metrics catch real problems
-  (collinearity, explainer disagreement) that a plain SHAP plot would never
-  reveal.
+  (collinearity + interaction) so you can inspect how proxy features affect
+  explainer agreement and stability.
 * **Upload CSV** — point the same trust battery at your own tabular data: pick a
-  target column, classify vs regress, train a model (or upload a pre-trained
-  `.joblib`/`.pkl` model), and get a trust report.
+  target column, classify vs regress, train a model, and get a trust report.
 
 In both modes the app explains instances with SHAP and LIME, runs the full
 trust-metric battery, and renders a report.
@@ -20,10 +18,9 @@ trust-metric battery, and renders a report.
 
 from __future__ import annotations
 
-import io
 import os
-import pickle
 import sys
+from typing import Optional
 
 import numpy as np
 import pandas as pd
@@ -53,6 +50,7 @@ from explaintrust import (
     lime_attributions,
     make_collinear_dataset,
     per_feature_reliability,
+    prediction_output_space,
     scalar_predictor,
     shap_attributions,
     shift_distribution,
@@ -68,21 +66,6 @@ from explaintrust.metrics import (
     removal_effect_correlation,
 )
 
-try:
-    import joblib
-except ImportError:  # pragma: no cover - joblib ships with scikit-learn
-    joblib = None
-
-
-def _load_model_bytes(data: bytes):
-    """Deserialize an uploaded model (joblib first, then plain pickle)."""
-    if joblib is not None:
-        try:
-            return joblib.load(io.BytesIO(data))
-        except Exception:
-            pass
-    return pickle.loads(data)
-
 
 def _run_battery(
     model,
@@ -97,11 +80,19 @@ def _run_battery(
     seg_feature,
 ):
     """Run SHAP + LIME and the full trust-metric battery for a fitted model."""
-    pred = scalar_predictor(model)
+    top_k = min(3, len(names))
+    output_space = prediction_output_space(model)
+    pred = scalar_predictor(model, output_space=output_space)
 
     shap_attr = shap_attributions(model, X_explain, X_background=X_bg, method="auto")
     lime_attr = lime_attributions(
-        model, X_explain, X_bg, feature_names=names, num_samples=lime_samples, seed=seed
+        model,
+        X_explain,
+        X_bg,
+        feature_names=names,
+        num_samples=lime_samples,
+        seed=seed,
+        output_space=output_space,
     )
     lime_contrib = to_contribution_scale(lime_attr, X_explain, X_bg)
 
@@ -111,7 +102,9 @@ def _run_battery(
         for i in range(n_explain)
     ]
     comps = [
-        comprehensiveness_ratio(pred, X_explain[i], shap_attr[i], X_bg, top_k=3, seed=seed + i)
+        comprehensiveness_ratio(
+            pred, X_explain[i], shap_attr[i], X_bg, top_k=top_k, seed=seed + i
+        )
         for i in range(n_explain)
     ]
     mean_removal = float(np.nanmean(removals))
@@ -132,21 +125,23 @@ def _run_battery(
 
     # Run-to-run stability (stochastic LIME)
     def lime_seeded(seed: int):
-        return lime_attributions(
+        attr = lime_attributions(
             model,
             X_explain[:1],
             X_bg,
             feature_names=names,
             num_samples=max(500, lime_samples // 2),
             seed=seed,
-        )[0]
+            output_space=output_space,
+        )
+        return to_contribution_scale(attr, X_explain[:1], X_bg)[0]
 
-    stability = cross_run_stability(lime_seeded, n_runs=n_runs, top_k=3)
+    stability = cross_run_stability(lime_seeded, n_runs=n_runs, top_k=top_k)
 
     # SHAP vs LIME disagreement (contribution scale)
     dis_sign, dis_rank_topk, dis_rank_full, dis_topk, dis_mag = [], [], [], [], []
     for i in range(n_explain):
-        d = explainer_disagreement(shap_attr[i], lime_contrib[i], top_k=3)
+        d = explainer_disagreement(shap_attr[i], lime_contrib[i], top_k=top_k)
         dis_sign.append(d["sign_disagreement"])
         dis_rank_topk.append(d["topk_rank_corr"])
         dis_rank_full.append(d["rank_corr"])
@@ -160,11 +155,11 @@ def _run_battery(
         "magnitude_disagreement": float(np.nanmean(dis_mag)),
     }
 
-    # Distribution verification
+    # Exploratory subgroup consistency
     attr_dist = shap_attributions(model, X_dist, X_background=X_bg, method="auto")
     col = X_dist[:, seg_feature]
     segments = np.digitize(col, np.quantile(col, [0.33, 0.66]))
-    distribution = cross_segment_stability(X_dist, segments, attr_dist, top_k=3)
+    distribution = cross_segment_stability(X_dist, segments, attr_dist, top_k=top_k)
 
     report = build_trust_report(
         removal_corr=mean_removal,
@@ -174,7 +169,20 @@ def _run_battery(
         stability=stability,
         disagreement=disagreement,
         distribution=distribution,
-        top_k=3,
+        top_k=top_k,
+    )
+    report.context.update(
+        {
+            "output_space": output_space,
+            "class_index": 1 if hasattr(model, "predict_proba") else None,
+            "faithfulness_instances": n_explain,
+            "sensitivity_instances": 1,
+            "stability_instances": 1,
+            "subgroup_instances": len(X_dist),
+            "background_instances": len(X_bg),
+            "subgroup_feature": names[seg_feature],
+            "seed": seed,
+        }
     )
 
     return {
@@ -187,7 +195,7 @@ def _run_battery(
     }
 
 
-@st.cache_resource(show_spinner=False)
+@st.cache_data(show_spinner=False)
 def run_pipeline(
     dataset: str,
     model_name: str,
@@ -218,8 +226,7 @@ def run_pipeline(
     X_bg = X_train[rng.choice(len(X_train), size=100, replace=False)]
     X_explain = X_test[:n_explain]
 
-    # Distribution verification on a drifted set (a synthetic perturbation the
-    # model was not validated on).
+    # Explore subgroup heterogeneity inside a deliberately drifted dataset.
     X_dist, y_dist, _ = make_collinear_dataset(n=400, seed=seed + 7)
     X_dist, _, _ = shift_distribution(X_dist, y_dist, shift="x1_drift", seed=seed + 1)
 
@@ -239,7 +246,6 @@ def run_pipeline(
     return out
 
 
-@st.cache_resource(show_spinner=False)
 def run_uploaded_pipeline(
     csv_bytes: bytes,
     target_col: str,
@@ -251,31 +257,30 @@ def run_uploaded_pipeline(
     seed: int,
     lime_samples: int,
     n_runs: int,
-    model_bytes: bytes | None,
 ):
-    """Run the same trust battery on the user's own CSV (+ optional model)."""
+    """Run the same trust battery on the user's own CSV."""
     df = read_csv_bytes(csv_bytes)
-    X, y, names = prepare_tabular(df, target_col, task)
+    X, y, names, preprocessing = prepare_tabular(df, target_col, task)
 
     if len(X) < 40:
         raise ValueError(f"need at least 40 usable rows, got {len(X)}")
-    if X.shape[1] < 3:
-        raise ValueError(f"need at least 3 numeric feature columns, got {X.shape[1]}")
+    if X.shape[1] < 2:
+        raise ValueError(f"need at least 2 numeric feature columns, got {X.shape[1]}")
+    if task == "classification" and len(np.unique(y)) != 2:
+        raise ValueError("v0.1 supports binary classification only")
+    if task == "classification" and np.min(np.bincount(y)) < 2:
+        raise ValueError("each class needs at least 2 usable rows")
 
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=seed)
+    X_train, X_test, y_train, y_test = train_test_split(
+        X,
+        y,
+        test_size=0.3,
+        random_state=seed,
+        stratify=y if task == "classification" else None,
+    )
 
-    if model_bytes:
-        model = _load_model_bytes(model_bytes)
-        if not hasattr(model, "predict"):
-            raise ValueError("the uploaded object has no predict() method")
-        if task == "classification" and not hasattr(model, "predict_proba"):
-            st.warning(
-                "The uploaded model has no predict_proba(); classification metrics "
-                "assume the model exposes class probabilities."
-            )
-    else:
-        model = make_model(task, model_name, n_estimators, max_depth, seed)
-        model.fit(X_train, y_train)
+    model = make_model(task, model_name, n_estimators, max_depth, seed)
+    model.fit(X_train, y_train)
 
     score = model.score(X_test, y_test)
 
@@ -296,8 +301,10 @@ def run_uploaded_pipeline(
             "ground_truth": None,
             "X_explain": X_explain,
             "n_explain": n_explain,
+            "preprocessing": preprocessing,
         }
     )
+    out["report"].context["preprocessing"] = preprocessing
     return out
 
 
@@ -320,9 +327,7 @@ def main():
     lime_samples = st.sidebar.slider("LIME samples / instance", 500, 5000, 2000, step=500)
     n_runs = st.sidebar.slider("Stability runs", 3, 10, 5)
 
-    csv_bytes: bytes | None = None
-    model_bytes: bytes | None = None
-
+    csv_bytes: Optional[bytes] = None
     if data_source == "Synthetic demo":
         dataset = st.sidebar.selectbox("Dataset", ["collinear", "clean"], index=0)
         model_name = st.sidebar.selectbox("Model", CLASSIFICATION_MODELS, index=0)
@@ -347,15 +352,6 @@ def main():
             model_name = st.sidebar.selectbox("Model", model_choices, index=0)
             n_estimators = st.sidebar.slider("n_estimators", 10, 200, 100, step=10)
             max_depth = st.sidebar.slider("max_depth", 2, 10, 4)
-
-            model_upload = st.sidebar.file_uploader(
-                "Trained model (.joblib / .pkl, optional)", type=["joblib", "pkl", "pickle"]
-            )
-            if model_upload is not None:
-                model_bytes = model_upload.getvalue()
-                st.sidebar.warning(
-                    "⚠️ Loading a pickled model can execute arbitrary code — only load models you trust."
-                )
 
     # -----------------------------------------------------------------------
     # Run the pipeline
@@ -382,7 +378,6 @@ def main():
                     int(seed),
                     int(lime_samples),
                     n_runs,
-                    model_bytes,
                 )
             except Exception as exc:  # noqa: BLE001 - surface a clean message to the user
                 st.error(f"Could not run the trust battery: {exc}")
@@ -395,8 +390,8 @@ def main():
     st.markdown(
         "**explaintrust** evaluates SHAP and LIME explanations the way a careful "
         "reviewer would — not by how pretty they look, but by whether they are "
-        "*faithful, stable, mutually consistent, and robust across the data "
-        "distribution*."
+        "*faithful, stable, mutually consistent, and consistent across selected "
+        "subgroups*."
     )
 
     c1, c2 = st.columns(2)
@@ -406,6 +401,15 @@ def main():
         c1.metric("Model test accuracy", f"{out['accuracy']:.3f}")
     c2.metric("Explained instances", f"{out['n_explain']}")
 
+    if data_source == "Upload CSV":
+        prep = out["preprocessing"]
+        with st.expander("Data preparation audit", expanded=False):
+            st.json(prep)
+            st.caption(
+                "Non-numeric feature columns and rows with missing values are excluded in v0.1. "
+                "Confirm that these exclusions are scientifically appropriate before interpreting the report."
+            )
+
     if data_source == "Synthetic demo" and dataset == "collinear":
         with st.expander("ℹ️ Ground truth (synthetic data — only visible in the demo)", expanded=False):
             roles = pd.DataFrame(
@@ -413,18 +417,21 @@ def main():
             )
             st.dataframe(roles, width="stretch", hide_index=True)
             st.caption(
-                "x0 and x1 truly drive the label; x2 is collinear with x0 (not causal). "
-                "A good trust report should flag that SHAP and LIME fight over x0 vs x2, "
-                "and that the explanation is unstable — even though the model is fine."
+                "x0 and x1 enter the label-generating mechanism; x2 is a correlated proxy "
+                "that may still be used by the predictive model. Compare how SHAP and LIME "
+                "allocate model-level credit, but do not interpret either as causal evidence."
             )
 
     # -----------------------------------------------------------------------
     # Verdict
     # -----------------------------------------------------------------------
     report = out["report"]
-    verdict_color = {"TRUSTWORTHY": "green", "MIXED": "orange"}.get(
-        "TRUSTWORTHY" if report.overall.startswith("TRUSTWORTHY") else "MIXED", "red"
-    )
+    if report.overall.startswith("NO ISSUES"):
+        verdict_color = "green"
+    elif report.overall.startswith(("MIXED", "INSUFFICIENT")):
+        verdict_color = "orange"
+    else:
+        verdict_color = "red"
     st.markdown(
         f"<div style='padding:1rem;border-radius:8px;border:1px solid {verdict_color};"
         f"background:{verdict_color}1a'>"
@@ -439,6 +446,8 @@ def main():
     st.subheader("Trust scorecard")
     score_df = report.as_dataframe()
     st.dataframe(score_df, width="stretch", hide_index=True)
+    with st.expander("Method context", expanded=False):
+        st.json(report.context)
 
     # -----------------------------------------------------------------------
     # SHAP vs LIME for the first instance
@@ -463,17 +472,25 @@ def main():
         feature_names=names,
         instance_index=instance_idx,
     )
+    report.feature_reliability = feat_df
+    report.context["feature_reliability_instance"] = instance_idx
     st.markdown("Features sorted by SHAP–LIME gap (flagged = the two explainers disagree on this feature):")
     st.dataframe(feat_df, width="stretch", hide_index=True)
+    st.download_button(
+        "Download report JSON",
+        data=report.to_json(),
+        file_name="explaintrust-report.json",
+        mime="application/json",
+    )
 
     # -----------------------------------------------------------------------
-    # Distribution verification
+    # Subgroup consistency
     # -----------------------------------------------------------------------
-    st.subheader("Does the story hold across the distribution?")
+    st.subheader("Does the story stay consistent across selected subgroups?")
     dist = out["distribution"]
     c1, c2, c3 = st.columns(3)
     c1.metric("Cross-segment rank stability", f"{dist['rank_corr']:.3f}")
-    c2.metric("Top-3 flip rate", f"{dist['topk_flip_rate']:.3f}")
+    c2.metric(f"Top-{report.context['top_k']} flip rate", f"{dist['topk_flip_rate']:.3f}")
     c3.metric("Segments", f"{len(dist['segment_ids'])}")
 
     seg_df = pd.DataFrame(dist["importances"], columns=names)
@@ -481,7 +498,8 @@ def main():
     st.dataframe(seg_df, width="stretch", hide_index=True)
     st.caption(
         "Global feature importance (mean |attribution|) per subpopulation. "
-        "If the ranking flips across segments, the explanation does not generalize."
+        "A ranking change indicates subgroup heterogeneity; it does not by itself "
+        "measure source-to-target distribution shift."
     )
 
 

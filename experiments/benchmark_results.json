@@ -29,11 +29,11 @@
     "removal_corr": {
       "direction": "higher",
       "pooled_median": 0.4543,
-      "pooled_p10": 0.3771,
-      "pooled_p90": 0.5136,
+      "pooled_p10": 0.3735,
+      "pooled_p90": 0.5191,
       "per_dataset_median": {
-        "adult": 0.4249,
-        "diabetes": 0.4812
+        "adult": 0.4271,
+        "diabetes": 0.4789
       },
       "current_default": [
         0.5,
@@ -44,10 +44,10 @@
       "direction": "higher",
       "pooled_median": 28.547,
       "pooled_p10": 7.1789,
-      "pooled_p90": 428.7241,
+      "pooled_p90": 522.9413,
       "per_dataset_median": {
-        "adult": 62.6311,
-        "diabetes": 10.6126
+        "adult": 63.7952,
+        "diabetes": 10.6341
       },
       "current_default": [
         1.0,
@@ -56,12 +56,12 @@
     },
     "infidelity": {
       "direction": "lower",
-      "pooled_median": 0.8274,
-      "pooled_p10": 0.0803,
-      "pooled_p90": 1.3981,
+      "pooled_median": 0.7256,
+      "pooled_p10": 0.0,
+      "pooled_p90": 1.1492,
       "per_dataset_median": {
-        "adult": 0.7745,
-        "diabetes": 0.868
+        "adult": 0.7483,
+        "diabetes": 0.7246
       },
       "current_default": [
         0.5,
@@ -70,12 +70,12 @@
     },
     "sensitivity": {
       "direction": "lower",
-      "pooled_median": 0.0106,
+      "pooled_median": 0.0,
       "pooled_p10": 0.0,
-      "pooled_p90": 0.8157,
+      "pooled_p90": 0.0316,
       "per_dataset_median": {
-        "adult": 0.0079,
-        "diabetes": 0.0218
+        "adult": 0.0,
+        "diabetes": 0.0
       },
       "current_default": [
         0.5,
@@ -84,12 +84,12 @@
     },
     "stability_rank": {
       "direction": "higher",
-      "pooled_median": 0.4599,
-      "pooled_p10": 0.2737,
+      "pooled_median": 0.9207,
+      "pooled_p10": 0.8782,
       "pooled_p90": 0.9999,
       "per_dataset_median": {
-        "adult": 0.4159,
-        "diabetes": 0.4746
+        "adult": 0.9259,
+        "diabetes": 0.9096
       },
       "current_default": [
         0.9,
@@ -99,7 +99,7 @@
     "stability_rank_topk": {
       "direction": "higher",
       "pooled_median": 1.0,
-      "pooled_p10": 0.94,
+      "pooled_p10": 0.655,
       "pooled_p90": 1.0,
       "per_dataset_median": {
         "adult": 1.0,
@@ -126,12 +126,12 @@
     },
     "disagreement_sign": {
       "direction": "lower",
-      "pooled_median": 0.326,
+      "pooled_median": 0.3249,
       "pooled_p10": 0.0,
-      "pooled_p90": 0.3791,
+      "pooled_p90": 0.3937,
       "per_dataset_median": {
-        "adult": 0.3281,
-        "diabetes": 0.3221
+        "adult": 0.3194,
+        "diabetes": 0.3249
       },
       "current_default": [
         0.2,
@@ -140,12 +140,12 @@
     },
     "disagreement_rank": {
       "direction": "higher",
-      "pooled_median": 0.4558,
-      "pooled_p10": 0.3283,
-      "pooled_p90": 0.9738,
+      "pooled_median": 0.8427,
+      "pooled_p10": 0.6059,
+      "pooled_p90": 0.977,
       "per_dataset_median": {
-        "adult": 0.4193,
-        "diabetes": 0.5177
+        "adult": 0.8042,
+        "diabetes": 0.8665
       },
       "current_default": [
         0.7,
@@ -154,12 +154,12 @@
     },
     "disagreement_rank_topk": {
       "direction": "higher",
-      "pooled_median": 0.75,
-      "pooled_p10": 0.25,
+      "pooled_median": 0.6875,
+      "pooled_p10": 0.3475,
       "pooled_p90": 1.0,
       "per_dataset_median": {
-        "adult": 0.5625,
-        "diabetes": 0.875
+        "adult": 0.6875,
+        "diabetes": 0.6875
       },
       "current_default": [
         0.7,
@@ -168,12 +168,12 @@
     },
     "disagreement_topk": {
       "direction": "higher",
-      "pooled_median": 0.75,
-      "pooled_p10": 0.5833,
-      "pooled_p90": 0.8333,
+      "pooled_median": 0.7917,
+      "pooled_p10": 0.6417,
+      "pooled_p90": 1.0,
       "per_dataset_median": {
-        "adult": 0.6667,
-        "diabetes": 0.75
+        "adult": 0.75,
+        "diabetes": 0.8333
       },
       "current_default": [
         0.66,
@@ -182,12 +182,12 @@
     },
     "disagreement_magnitude": {
       "direction": "lower",
-      "pooled_median": 0.727,
-      "pooled_p10": 0.4048,
-      "pooled_p90": 1.0245,
+      "pooled_median": 0.494,
+      "pooled_p10": 0.0352,
+      "pooled_p90": 0.6869,
       "per_dataset_median": {
-        "adult": 0.7786,
-        "diabetes": 0.6051
+        "adult": 0.494,
+        "diabetes": 0.516
       },
       "current_default": [
         1.0,

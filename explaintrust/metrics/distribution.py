@@ -1,13 +1,10 @@
-"""Distribution-level verification: do explanations hold across the population?
+"""Subgroup consistency: do global importance rankings vary across segments?
 
-A single explanation is a point estimate. The question that most tooling never
-asks is whether the *story* the explanation tells generalizes: does the ranking
-of "important features" stay stable across subpopulations, and does it survive
-distribution shift?
+A single explanation is a point estimate. This module asks whether the ranking
+of "important features" stays stable across user-defined subpopulations.
 
-This is the "explanation distribution verification" angle (解释分发校验): if the
-global feature-importance ranking flips between segments of the data, then the
-explanation is an artifact of one slice, not a property of the model.
+A ranking change is evidence of subgroup heterogeneity. It is not, by itself,
+a source-to-target distribution-shift test.
 """
 
 from __future__ import annotations
@@ -18,6 +15,9 @@ from scipy import stats
 
 def _top_k_flip_rate(ranks_per_segment: np.ndarray, k: int) -> float:
     """Fraction of segments whose top-k set differs from the first segment's."""
+    if k < 1:
+        raise ValueError("top_k must be at least 1")
+    k = min(k, ranks_per_segment.shape[1])
     base = set(np.argsort(np.abs(ranks_per_segment[0]))[::-1][:k])
     flips = 0
     for seg in ranks_per_segment[1:]:
@@ -55,6 +55,12 @@ def cross_segment_stability(
     """
     attributions = np.asarray(attributions, dtype=float)
     segments = np.asarray(segments)
+    if attributions.ndim != 2:
+        raise ValueError("attributions must have shape (n_instances, n_features)")
+    if segments.ndim != 1 or len(segments) != len(attributions):
+        raise ValueError("segments must be one-dimensional and match attributions")
+    if len(attributions) == 0:
+        raise ValueError("attributions must contain at least one instance")
     seg_ids = np.unique(segments)
 
     importances = np.zeros((len(seg_ids), attributions.shape[1]))

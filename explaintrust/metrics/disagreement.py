@@ -36,8 +36,8 @@ def explainer_disagreement(attr_a: np.ndarray, attr_b: np.ndarray, top_k: int = 
         "topk_rank_corr"          — Spearman correlation over the top-k features
                                     only, robust to many noise features
                                     (higher better)
-        "topk_overlap"            — Jaccard overlap of top-k feature sets
-                                    (higher better)
+        "topk_overlap"            — fraction of shared top-k features
+                                    (intersection / k; higher better)
         "magnitude_disagreement"  — mean normalized |attr_a − attr_b| gap over
                                     the top-k features (lower better)
         "per_feature_gap"         — |attr_a − attr_b| normalized by that
@@ -54,18 +54,21 @@ def explainer_disagreement(attr_a: np.ndarray, attr_b: np.ndarray, top_k: int = 
     else:
         sign_dis = 0.0
 
-    c = stats.spearmanr(a, b).correlation
+    c = stats.spearmanr(np.abs(a), np.abs(b)).correlation
     rank_corr = float(c) if c is not None else float("nan")
 
-    top_a = set(np.argsort(np.abs(a))[::-1][:top_k])
-    top_b = set(np.argsort(np.abs(b))[::-1][:top_k])
-    topk_overlap = len(top_a & top_b) / top_k
+    k = min(top_k, len(a), len(b))
+    if k < 1:
+        raise ValueError("top_k must be at least 1")
+    top_a = set(np.argsort(np.abs(a))[::-1][:k])
+    top_b = set(np.argsort(np.abs(b))[::-1][:k])
+    topk_overlap = len(top_a & top_b) / k
 
     # Top-k rank correlation: rank agreement on the features that matter,
     # robust to the number of noise features (full-d rank corr degrades with d).
     combined = np.abs(a) + np.abs(b)
-    top_idx = np.argsort(combined)[::-1][:top_k]
-    ck = stats.spearmanr(a[top_idx], b[top_idx]).correlation
+    top_idx = np.argsort(combined)[::-1][:k]
+    ck = stats.spearmanr(np.abs(a[top_idx]), np.abs(b[top_idx])).correlation
     topk_rank_corr = float(ck) if ck is not None else float("nan")
 
     # Per-feature *relative* gap: how much the two explainers disagree on each

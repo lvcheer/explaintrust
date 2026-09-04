@@ -56,7 +56,7 @@ N_EXPLAIN = 4
 BG = 200
 TOPK = 3
 LIME_SAMPLES = 1000
-DIST_N = 2000  # subsample size for the distribution-verification check
+DIST_N = 2000  # subsample size for the subgroup-consistency check
 
 MODELS = {
     "RandomForest": lambda s: RandomForestClassifier(n_estimators=60, max_depth=5, random_state=s, n_jobs=-1),
@@ -69,7 +69,7 @@ MODELS = {
 CURRENT_DEFAULTS = {
     "removal_corr": ("higher", 0.5, 0.2),
     "comprehensiveness": ("higher", 1.0, 1.0),  # now a >1 "not noise" gate
-    "infidelity": ("lower", 0.5, 1.0),          # now normalized (fraction of variance)
+    "infidelity": ("lower", 0.5, 1.0),          # normalized against zero-change MSE
     "sensitivity": ("lower", 0.5, 2.0),
     "stability_rank": ("higher", 0.9, 0.7),
     "stability_rank_topk": ("higher", 0.9, 0.7),
@@ -125,7 +125,15 @@ def _run_metrics(model, X_explain, X_bg, names, X_dist, seed):
     sens = max_sensitivity(explain_single, X_explain[0], X_bg, n_perturbations=6, seed=seed)
 
     def lime_seeded(seed: int):
-        return lime_attributions(model, X_explain[:1], X_bg, feature_names=names, num_samples=LIME_SAMPLES, seed=seed)[0]
+        attr = lime_attributions(
+            model,
+            X_explain[:1],
+            X_bg,
+            feature_names=names,
+            num_samples=LIME_SAMPLES,
+            seed=seed,
+        )
+        return to_contribution_scale(attr, X_explain[:1], X_bg)[0]
 
     stab = cross_run_stability(lime_seeded, n_runs=5, top_k=TOPK)
 

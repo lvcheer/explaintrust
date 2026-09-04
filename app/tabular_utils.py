@@ -47,7 +47,7 @@ def infer_task(y: pd.Series) -> str:
 
 
 def prepare_tabular(df: pd.DataFrame, target_col: str, task: str):
-    """Turn a raw DataFrame into ``(X, y, feature_names)``.
+    """Turn a raw DataFrame into ``(X, y, feature_names, metadata)``.
 
     * ``target_col`` is removed from the feature matrix.
     * Non-numeric feature columns are dropped (v0.1 supports numeric features).
@@ -64,21 +64,35 @@ def prepare_tabular(df: pd.DataFrame, target_col: str, task: str):
         raise ValueError(f"target column {target_col!r} is not in the data")
 
     y = df[target_col].copy()
-    X = df.drop(columns=[target_col]).copy()
-    X = X.select_dtypes(include=[np.number])
+    raw_X = df.drop(columns=[target_col]).copy()
+    X = raw_X.select_dtypes(include=[np.number])
     if X.shape[1] == 0:
-        raise ValueError("no numeric feature columns found (need at least 3)")
+        raise ValueError("no numeric feature columns found")
+
+    metadata = {
+        "input_rows": len(df),
+        "input_feature_columns": raw_X.shape[1],
+        "used_numeric_features": list(X.columns),
+        "dropped_non_numeric_features": [c for c in raw_X.columns if c not in X.columns],
+    }
 
     mask = X.notna().all(axis=1) & y.notna()
     X = X.loc[mask].reset_index(drop=True)
     y = y.loc[mask].reset_index(drop=True)
+    metadata["usable_rows"] = len(X)
+    metadata["dropped_rows_missing"] = int(len(df) - len(X))
 
     if task == "classification":
-        y = y.astype("category").cat.codes.to_numpy().astype(int)
+        categorical = y.astype("category")
+        metadata["class_mapping"] = {
+            str(label): int(code) for code, label in enumerate(categorical.cat.categories)
+        }
+        y = categorical.cat.codes.to_numpy().astype(int)
     else:
         y = y.astype(float).to_numpy()
+        metadata["class_mapping"] = None
 
-    return X.to_numpy(dtype=float), y, list(X.columns)
+    return X.to_numpy(dtype=float), y, list(X.columns), metadata
 
 
 def make_model(task: str, model_name: str, n_estimators: int = 100, max_depth: int = 4, seed: int = 0):
@@ -109,7 +123,7 @@ def make_model(task: str, model_name: str, n_estimators: int = 100, max_depth: i
 def segment_feature(X: np.ndarray) -> int:
     """Index of the numeric feature with the largest spread.
 
-    Used to pick a sensible axis for the distribution-verification segments
+    Used to pick a default axis for exploratory subgroup segments
     when the user's data has no known "interesting" column.
     """
     std = np.std(np.asarray(X, dtype=float), axis=0)

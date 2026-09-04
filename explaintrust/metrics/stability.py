@@ -10,11 +10,16 @@ which is itself useful signal to surface in a report.
 
 from __future__ import annotations
 
+from typing import Optional
+
 import numpy as np
 from scipy import stats
 
 
 def _top_k_overlap(a: np.ndarray, b: np.ndarray, k: int) -> float:
+    k = min(k, len(a), len(b))
+    if k < 1:
+        raise ValueError("top_k must be at least 1")
     top_a = set(np.argsort(np.abs(a))[::-1][:k])
     top_b = set(np.argsort(np.abs(b))[::-1][:k])
     return len(top_a & top_b) / k
@@ -23,7 +28,7 @@ def _top_k_overlap(a: np.ndarray, b: np.ndarray, k: int) -> float:
 def cross_run_stability(
     explainer,
     n_runs: int = 10,
-    top_k: int | None = None,
+    top_k: Optional[int] = None,
 ) -> dict:
     """Measure how much an explanation varies across ``n_runs`` random seeds.
 
@@ -33,7 +38,7 @@ def cross_run_stability(
         ``explainer(seed: int) -> attribution vector`` of shape (d,). The same
         instance is re-explained with a different ``seed`` each run.
     top_k : int, optional
-        If given, also report the mean Jaccard overlap of the top-k features
+        If given, also report the mean fraction of shared top-k features
         (by |attribution|) across all pairs of runs.
 
     Returns
@@ -48,7 +53,7 @@ def cross_run_stability(
                             to a large number of noise features (higher better)
         "sign_agreement"  — fraction of the top-k features whose sign is identical
                             in every run (higher better)
-        "topk_overlap"    — mean pairwise Jaccard overlap of top-k sets
+        "topk_overlap"    — mean pairwise shared-feature fraction of top-k sets
                             (only if top_k given)
         "std"             — per-feature std of attribution across runs (vector)
     """
@@ -66,10 +71,12 @@ def cross_run_stability(
     corrs, corrs_k = [], []
     for i in range(n_runs):
         for j in range(i + 1, n_runs):
-            c = stats.spearmanr(runs[i], runs[j]).correlation
+            c = stats.spearmanr(np.abs(runs[i]), np.abs(runs[j])).correlation
             if c is not None:
                 corrs.append(c)
-            ck = stats.spearmanr(runs[i][top_features], runs[j][top_features]).correlation
+            ck = stats.spearmanr(
+                np.abs(runs[i][top_features]), np.abs(runs[j][top_features])
+            ).correlation
             if ck is not None:
                 corrs_k.append(ck)
     rank_corr = float(np.mean(corrs)) if corrs else float("nan")

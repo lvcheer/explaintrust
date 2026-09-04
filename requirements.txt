@@ -6,4 +6,5 @@ shap>=0.44
 lime>=0.2
 streamlit>=1.45
 plotly>=5.0
+matplotlib>=3.6
 tqdm>=4.0

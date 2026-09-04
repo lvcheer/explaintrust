@@ -89,9 +89,10 @@ def main() -> None:
 
     # --- run-to-run stability (stochastic explainer: LIME) ----------------
     def lime_explainer_seeded(seed: int):
-        return lime_attributions(
+        attr = lime_attributions(
             model, X_explain[:1], X_bg, feature_names=names, num_samples=1000, seed=seed
-        )[0]
+        )
+        return to_contribution_scale(attr, X_explain[:1], X_bg)[0]
 
     stability = cross_run_stability(lime_explainer_seeded, n_runs=8, top_k=3)
     print(
@@ -124,7 +125,7 @@ def main() -> None:
         f"magnitude_disagreement={disagreement['magnitude_disagreement']:.3f}\n"
     )
 
-    # --- distribution verification: explain the drifted test set ----------
+    # --- subgroup consistency inside a drifted test set --------------------
     X_shift, y_shift, _ = make_collinear_dataset(n=400, seed=7)
     X_shift, _, _ = shift_distribution(X_shift, y_shift, shift="x1_drift", seed=1)
     attr_shift = shap_attributions(model, X_shift, method="tree")

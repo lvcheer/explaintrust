@@ -1,8 +1,8 @@
 # Article: "Why your SHAP plot might be lying to you"
 
 An explorable (interactive) article built with Quarto. It is the *public-facing*
-half of the explaintrust project — the peer-reviewed / citable half is the
-library itself.
+half of the explaintrust project. The library and experiment outputs are the
+reproducible technical artifacts; neither is peer reviewed yet.
 
 ## One-time setup
 
@@ -34,14 +34,12 @@ checked in `quarto preview`.
 the `repo-url` / links in `index.qmd` to your own repo, then publish the
 `_site/` directory (e.g. via the `quarto publish gh-pages` command).
 
-## What to write next
+## Maintenance checklist
 
-The `index.qmd` is a complete skeleton: the thesis, section structure, the two
-figure slots, and one working interactive are in place. The `<!-- TODO -->`
-markers show exactly where prose needs to be written. Suggested order:
+The article is a complete first draft. Before publishing an update:
 
-1. Fill §"The picture that feels like understanding" and §"Four ways…" prose.
+1. Regenerate figures after any explainer or metric change.
 2. Verify the OJS toggle renders in `quarto preview` (it loads
    `figures/conversion.json`).
-3. Write §"A worked example" around `endpoints.png`.
-4. Add your own references to `references.bib`.
+3. Check every numerical claim against the regenerated JSON/demo output.
+4. Render the site and check desktop and mobile layouts.

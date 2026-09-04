@@ -9,16 +9,30 @@ plain Python (no pytest required):
 
 from __future__ import annotations
 
+import sys
+from pathlib import Path
+
 import numpy as np
-from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
+import pandas as pd
+from sklearn.ensemble import (
+    GradientBoostingClassifier,
+    RandomForestClassifier,
+    RandomForestRegressor,
+)
 from sklearn.linear_model import LinearRegression, LogisticRegression
+
+REPO_ROOT = Path(__file__).resolve().parents[1]
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
 
 from explaintrust import (
     lime_attributions,
     shap_attributions,
     to_contribution_scale,
     scalar_predictor,
+    build_trust_report,
 )
+from explaintrust.explainers import _shap_to_matrix
 from explaintrust.metrics import (
     infidelity,
     removal_effect_correlation,
@@ -28,6 +42,7 @@ from explaintrust.metrics import (
     explainer_disagreement,
     cross_segment_stability,
 )
+from app.tabular_utils import prepare_tabular
 
 
 def _linear_data(n=500, seed=0):
@@ -35,6 +50,23 @@ def _linear_data(n=500, seed=0):
     X = rng.normal(0, 1, size=(n, 4))
     y = 3.0 * X[:, 0] - 2.0 * X[:, 1] + 0.0 * X[:, 2] + 0.0 * X[:, 3]
     return X, y
+
+
+def test_tabular_preprocessing_is_auditable():
+    frame = pd.DataFrame(
+        {
+            "numeric": [1.0, 2.0, np.nan, 4.0],
+            "category": ["a", "b", "a", "b"],
+            "target": ["no", "yes", "no", "yes"],
+        }
+    )
+    X, y, names, metadata = prepare_tabular(frame, "target", "classification")
+    assert X.shape == (3, 1)
+    assert names == ["numeric"]
+    assert set(y) == {0, 1}
+    assert metadata["dropped_non_numeric_features"] == ["category"]
+    assert metadata["dropped_rows_missing"] == 1
+    assert metadata["class_mapping"] == {"no": 0, "yes": 1}
 
 
 def test_removal_correlation_high_on_true_importance():
@@ -68,13 +100,26 @@ def test_infidelity_lower_for_true_gradient_than_wrong():
     assert inf_true < inf_wrong, f"{inf_true} should be < {inf_wrong}"
 
 
-def test_comprehensiveness_detects_causal_feature():
+def test_comprehensiveness_detects_predictive_feature():
     X, y = _linear_data()
     model = LinearRegression().fit(X, y)
     pred = scalar_predictor(model)
     attr = np.array([3.0, -2.0, 0.0, 0.0])  # points to x0, x1
     ratio = comprehensiveness_ratio(pred, X[0], attr, X[:100], top_k=2, seed=0)
     assert ratio > 1.5, f"comprehensiveness should exceed random, got {ratio}"
+
+
+def test_top_k_is_capped_for_low_dimensional_inputs():
+    X, y = _linear_data()
+    X = X[:, :2]
+    model = LinearRegression().fit(X, y)
+    pred = scalar_predictor(model)
+    ratio = comprehensiveness_ratio(pred, X[0], model.coef_, X[:100], top_k=3, seed=0)
+    assert np.isfinite(ratio)
+
+    attrs = np.tile(np.array([1.0, 0.5]), (20, 1))
+    result = cross_segment_stability(X[:20], np.repeat([0, 1], 10), attrs, top_k=3)
+    assert result["topk_flip_rate"] == 0.0
 
 
 def test_lime_sign_matches_true_coefficients():
@@ -99,6 +144,49 @@ def test_to_contribution_scale_matches_shap_on_linear_model():
     assert corr > 0.9, f"converted LIME should match SHAP on linear model, corr={corr}"
 
 
+def test_lime_gradient_is_in_original_feature_units():
+    rng = np.random.default_rng(2)
+    X = np.column_stack(
+        [
+            rng.normal(0, 100, 600),
+            rng.normal(0, 0.01, 600),
+            rng.normal(0, 5, 600),
+        ]
+    )
+    true_gradient = np.array([0.02, -100.0, 0.5])
+    model = LinearRegression().fit(X, X @ true_gradient)
+    lime = lime_attributions(model, X[200:201], X[:200], num_samples=5000, seed=0)[0]
+    assert np.allclose(lime, true_gradient, rtol=0.02, atol=0.02), (lime, true_gradient)
+    score = infidelity(scalar_predictor(model), X[200], lime, X[:200], seed=0)
+    assert score < 1e-4, f"exact linear gradient should have near-zero infidelity, got {score}"
+
+
+def test_tree_shap_and_scalar_predictor_share_output_space():
+    X, y = _linear_data()
+    yb = (y > 0).astype(int)
+    models = [
+        RandomForestClassifier(n_estimators=20, max_depth=3, random_state=0),
+        GradientBoostingClassifier(n_estimators=20, max_depth=3, random_state=0),
+    ]
+    for model in models:
+        model.fit(X, yb)
+        attr = shap_attributions(model, X[:3], method="tree")
+        output = scalar_predictor(model)(X[:3])
+        # SHAP's expected value cancels when comparing any two instances.
+        assert np.allclose(
+            attr.sum(axis=1) - attr.sum(axis=1)[0],
+            output - output[0],
+            atol=1e-6,
+        ), type(model).__name__
+
+
+def test_old_shap_class_list_keeps_instance_feature_shape():
+    values = [np.arange(12).reshape(3, 4), 100 + np.arange(12).reshape(3, 4)]
+    out = _shap_to_matrix(values, class_index=1)
+    assert out.shape == (3, 4)
+    assert np.array_equal(out, values[1])
+
+
 def test_deterministic_explainer_is_perfectly_stable():
     X, y = _linear_data()
     model = LinearRegression().fit(X, y)
@@ -119,6 +207,15 @@ def test_identical_attributions_have_zero_disagreement():
     assert np.allclose(d["topk_rank_corr"], 1.0)
     assert d["topk_overlap"] == 1.0
     assert d["magnitude_disagreement"] == 0.0
+
+
+def test_rank_agreement_uses_importance_magnitude_not_sign():
+    a = np.array([-3.0, 2.0, -1.0])
+    b = -a
+    d = explainer_disagreement(a, b, top_k=3)
+    assert d["rank_corr"] == 1.0
+    assert d["topk_rank_corr"] == 1.0
+    assert d["sign_disagreement"] == 1.0
 
 
 def test_topk_rank_corr_robust_to_noise_features():
@@ -159,6 +256,93 @@ def test_max_sensitivity_zero_for_constant_explainer():
         return np.array([1.0, 1.0, 1.0, 1.0])
     sens = max_sensitivity(const, X[0], X[:100], n_perturbations=10, seed=0)
     assert sens == 0.0
+
+
+def test_max_sensitivity_is_change_not_lipschitz_ratio():
+    rng = np.random.default_rng(0)
+    background = rng.normal(size=(5000, 2))
+    x = np.array([1.0, -1.0])
+    sens = max_sensitivity(lambda z: z, x, background, n_perturbations=200, radius=0.1, seed=0)
+    assert 0.05 < sens <= 0.11, sens
+
+
+def test_infidelity_normalization_uses_zero_change_baseline():
+    background = np.zeros((100, 2))
+    x = np.ones(2)
+    model = lambda z: np.asarray(z).sum(axis=1)
+    score = infidelity(
+        model,
+        x,
+        np.zeros(2),
+        background,
+        n_perturbations=100,
+        strategy="mask",
+        seed=0,
+    )
+    assert np.allclose(score, 1.0), score
+
+
+def test_missing_metrics_never_produce_positive_overall_verdict():
+    nan = float("nan")
+    report = build_trust_report(
+        nan,
+        nan,
+        nan,
+        None,
+        {"topk_rank_corr": nan, "sign_agreement": nan},
+        {
+            "sign_disagreement": nan,
+            "topk_rank_corr": nan,
+            "topk_overlap": nan,
+            "magnitude_disagreement": nan,
+        },
+        {"rank_corr": nan, "topk_flip_rate": nan},
+    )
+    assert report.overall.startswith("INSUFFICIENT EVIDENCE")
+    assert '"value": null' in report.to_json()
+
+
+def test_skipped_sensitivity_is_reported_as_missing_evidence():
+    report = build_trust_report(
+        1.0,
+        2.0,
+        0.0,
+        None,
+        {"topk_rank_corr": 1.0, "sign_agreement": 1.0},
+        {
+            "sign_disagreement": 0.0,
+            "topk_rank_corr": 1.0,
+            "topk_overlap": 1.0,
+            "magnitude_disagreement": 0.0,
+        },
+    )
+    assert report.overall.startswith("INSUFFICIENT EVIDENCE")
+
+
+def test_report_thresholds_are_configurable():
+    common = dict(
+        removal_corr=0.6,
+        comprehensiveness=2.0,
+        lime_infidelity=0.0,
+        sensitivity_value=0.0,
+        stability={"topk_rank_corr": 1.0, "sign_agreement": 1.0},
+        disagreement={
+            "sign_disagreement": 0.0,
+            "topk_rank_corr": 1.0,
+            "topk_overlap": 1.0,
+            "magnitude_disagreement": 0.0,
+        },
+    )
+    assert build_trust_report(**common).overall.startswith("NO ISSUES")
+    strict = build_trust_report(**common, thresholds={"removal": (0.9, 0.8)})
+    assert strict.overall.startswith("MIXED")
+
+    try:
+        build_trust_report(**common, thresholds={"removal": (0.2, 0.8)})
+    except ValueError as exc:
+        assert "invalid order" in str(exc)
+    else:
+        raise AssertionError("reversed higher-is-better thresholds must be rejected")
 
 
 def test_auto_shap_method_matches_explicit():

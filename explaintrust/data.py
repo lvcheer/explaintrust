@@ -1,15 +1,16 @@
 """Synthetic datasets for demos and tests.
 
-The datasets are deliberately built around the two phenomena that make
-post-hoc explanations untrustworthy in practice:
+The datasets are deliberately built around two phenomena that complicate the
+interpretation of post-hoc explanations:
 
 1. **Collinearity** — a non-causal feature that is highly correlated with a
    causal one. SHAP and LIME tend to *split* (or arbitrarily assign) the
-   importance between the two, so their rankings disagree and their answers
-   are unstable. This is the classic "explainers disagree" trigger.
+   importance between the two. This makes proxy reliance and explainer
+   disagreement visible without implying that either attribution is causal.
 2. **Distribution shift** — we can perturb the data-generating process to
    simulate a model/explanation being asked about inputs it was not validated
-   on, which is what the distribution-verification metric probes.
+   on. The current cross-segment metric can describe heterogeneity within such
+   a dataset; direct source-to-target comparison is a separate future check.
 """
 
 from __future__ import annotations
@@ -48,7 +49,8 @@ def make_collinear_dataset(n: int = 2000, seed: int = 0):
 
     # x0, x1 are causal; x1 also interacts with x0 (non-additive), which makes
     # any single additive explanation necessarily incomplete.
-    # x2 is a collinear copy of x0 with noise -> explainers fight over x0 vs x2.
+    # x2 is a noisy proxy for x0; a predictive model may therefore use it even
+    # though it does not enter the label-generating equation directly.
     X[:, 2] = 0.85 * X[:, 0] + rng.normal(0.0, 0.35, size=n)
 
     logit = (
@@ -71,7 +73,8 @@ def shift_distribution(X, y, feature_names=None, shift="x1_drift", seed=0):
     This produces a second dataset whose *data-generating process* differs from
     the original (e.g. the causal feature x1 is re-centered / rescaled). An
     explanation that was validated only on the original distribution may not
-    hold here — which is precisely what ``distribution``-level metrics check.
+    hold here. This helper creates shifted inputs; it does not itself validate
+    whether an explanation transfers from source to target.
 
     Parameters
     ----------

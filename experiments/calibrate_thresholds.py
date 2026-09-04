@@ -2,19 +2,20 @@
 
 Method
 ------
-Each metric is measured in two regimes where we *know* the ground truth, using
-the synthetic datasets' built-in generative structure. Regimes are chosen so the
-metric has a real, directional signal in each (see per-function docstrings).
+Each metric is measured in two engineered regimes using the synthetic datasets'
+built-in generative structure. Some labels are true corruption controls (for
+example shuffled attributions); others are stress-test assumptions, not ground-
+truth labels of explanation quality (see per-function docstrings).
 
 Threshold rule
 --------------
-For each metric we pick two boundaries so that ~80% of the *known-good* samples
-are judged "good" and ~80% of the *known-bad* samples are judged "bad":
+For each metric we use the first half of the ordered seeds to fit two boundaries,
+then report performance on the held-out second half. On the calibration half:
 
 * higher-is-better: ``good = P20(good)``, ``warn = P80(bad)``
 * lower-is-better: ``good = P80(good)``, ``warn = P20(bad)``
 
-This is a first-pass calibration on synthetic data — a defensible v0.2 baseline,
+This is a first-pass, held-out check on synthetic data — a diagnostic baseline,
 not a claim about real-world distributions.
 """
 from __future__ import annotations
@@ -59,35 +60,42 @@ def _clean(xs):
 
 
 def propose(name: str, direction: str, good, bad) -> dict:
-    """Fit thresholds from the two regimes and validate them."""
+    """Fit on the first half of ordered-seed samples; evaluate on the rest."""
     good, bad = _clean(good), _clean(bad)
-    if len(good) < 5 or len(bad) < 5:
+    if len(good) < 10 or len(bad) < 10:
         return {"name": name, "error": "insufficient samples"}
 
+    good_split = len(good) // 2
+    bad_split = len(bad) // 2
+    good_cal, good_test = good[:good_split], good[good_split:]
+    bad_cal, bad_test = bad[:bad_split], bad[bad_split:]
+
     if direction == "higher":
-        good_thresh = float(np.percentile(good, 20))
-        warn_thresh = float(np.percentile(bad, 80))
+        good_thresh = float(np.percentile(good_cal, 20))
+        warn_thresh = float(np.percentile(bad_cal, 80))
     else:
-        good_thresh = float(np.percentile(good, 80))
-        warn_thresh = float(np.percentile(bad, 20))
+        good_thresh = float(np.percentile(good_cal, 80))
+        warn_thresh = float(np.percentile(bad_cal, 20))
 
     def verdict(v):
         if direction == "higher":
             return "good" if v >= good_thresh else ("bad" if v < warn_thresh else "warn")
         return "good" if v <= good_thresh else ("bad" if v > warn_thresh else "warn")
 
-    good_ok = float(np.mean([verdict(v) == "good" for v in good]))
-    bad_ok = float(np.mean([verdict(v) == "bad" for v in bad]))
+    good_ok = float(np.mean([verdict(v) == "good" for v in good_test]))
+    bad_ok = float(np.mean([verdict(v) == "bad" for v in bad_test]))
 
     return {
         "name": name,
         "direction": direction,
         "good_threshold": round(good_thresh, 4),
         "warn_threshold": round(warn_thresh, 4),
-        "good_median": round(float(np.median(good)), 4),
-        "bad_median": round(float(np.median(bad)), 4),
-        "n_good": len(good),
-        "n_bad": len(bad),
+        "good_median": round(float(np.median(good_test)), 4),
+        "bad_median": round(float(np.median(bad_test)), 4),
+        "n_good_calibration": len(good_cal),
+        "n_bad_calibration": len(bad_cal),
+        "n_good_test": len(good_test),
+        "n_bad_test": len(bad_test),
         "good_pass_rate": round(good_ok, 3),
         "bad_flag_rate": round(bad_ok, 3),
     }
@@ -209,10 +217,16 @@ def stability():
         bg, Xe = Xtr[:BG], Xte[:1]
 
         def lime_hi(seed: int):
-            return lime_attributions(model, Xe, bg, feature_names=names, num_samples=2000, seed=seed)[0]
+            attr = lime_attributions(
+                model, Xe, bg, feature_names=names, num_samples=2000, seed=seed
+            )
+            return to_contribution_scale(attr, Xe, bg)[0]
 
         def lime_lo(seed: int):
-            return lime_attributions(model, Xe, bg, feature_names=names, num_samples=20, seed=seed)[0]
+            attr = lime_attributions(
+                model, Xe, bg, feature_names=names, num_samples=20, seed=seed
+            )
+            return to_contribution_scale(attr, Xe, bg)[0]
 
         hi = cross_run_stability(lime_hi, n_runs=5, top_k=TOPK)
         lo = cross_run_stability(lime_lo, n_runs=5, top_k=TOPK)
@@ -301,8 +315,9 @@ def main() -> None:
 
     payload = {
         "method": (
-            "good = P20(good)/P80(bad) for higher; P80(good)/P20(bad) for lower. "
-            "~80% of known-good samples judged 'good', ~80% of known-bad judged 'bad'."
+            "Thresholds fitted on seeds 0-9 and evaluated on held-out seeds 10-19. "
+            "Higher: good=P20(good), warn=P80(bad); lower: good=P80(good), "
+            "warn=P20(bad)."
         ),
         "seeds": list(SEEDS),
         "n": N,

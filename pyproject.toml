@@ -29,12 +29,12 @@ dependencies = [
     "shap>=0.44",
     "lime>=0.2",
     "tqdm>=4.0",
-    "joblib>=1.0",
 ]
 
 [project.optional-dependencies]
 # Interactive demo / article figures
 app = ["streamlit>=1.45", "plotly>=5.0", "matplotlib>=3.6"]
+test = ["pytest>=8.0"]
 
 [project.urls]
 Homepage = "https://github.com/lvcheer/explaintrust"
@@ -43,3 +43,6 @@ Repository = "https://github.com/lvcheer/explaintrust"
 
 [tool.setuptools.packages.find]
 include = ["explaintrust*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

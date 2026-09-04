@@ -33,7 +33,7 @@ absolutely nothing. That gap — between "the explanation looks right" and "the
 explanation *is* right" — is the whole subject of this article.
 
 > **The question this article asks is not "how do I explain my model?", but
-> "how do I know the explanation is *true*?"**
+> "what evidence supports acting on this explanation?"**
 
 The reason this gap goes unchecked is structural. The tools we reach for — SHAP,
 LIME, and the dozens of wrappers around them — are built to *produce*
@@ -70,8 +70,10 @@ Two cheap checks expose the gap:
 
 On the collinear dataset used throughout this article, the model's SHAP
 explanations score a **removal-effect correlation of ≈ 0.59** and a
-**comprehensiveness ratio of ≈ 4.7** — removing the top-3 features moves the
-prediction roughly 4.7× more than removing 3 random features [@deyoung2020eraser].
+**comprehensiveness ratio of ≈ 5.1** — removing the top-3 features moves the
+prediction roughly five times more than removing 3 random features. This ratio
+is a tabular adaptation inspired by comprehensiveness-style ablation
+[@deyoung2020eraser], not the original ERASER metric verbatim.
 Those are healthy numbers. They are also *earned*, not assumed: the same model
 could just as easily have produced a gorgeous summary plot with a removal
 correlation near zero, and the plot would look identical. "Good" here is not a
@@ -125,13 +127,12 @@ Plot.plot({
 })
 ```
 
-Two independent mistakes turn this real-but-manageable disagreement into the
-"SHAP and LIME completely disagree!" number you see in blog posts. The first is
-**output space**. For a classifier, SHAP values are expressed in *log-odds* of
-the predicted class, while LIME's raw weights are fit in *probability* space.
-Comparing a log-odds number to a probability number is like comparing Celsius to
-Fahrenheit without converting — of course the two series look uncorrelated; they
-live on different scales.
+Two independent mistakes can distort measured disagreement. The first is
+**output space**. A classifier's SHAP output depends on the explainer and model:
+for example, TreeSHAP may explain probability for a random forest but raw margin
+for gradient boosting. LIME may fit probability or another chosen model output.
+Comparing attributions from different outputs is like comparing Celsius to
+Fahrenheit without converting: the numerical agreement is not interpretable.
 
 The second mistake is subtler and matters more. SHAP values are
 **contributions**: they satisfy `Σ φ_i ≈ f(x) − E[f(x)]`, a statement about how
@@ -139,16 +140,15 @@ far this prediction sits from the baseline. LIME weights are **slopes**: they
 satisfy `f(x̃) ≈ f(x) + φ·(x̃ − x)`, a statement about the local rate of change.
 A slope and a contribution are different quantities with different units, and
 feeding one into a metric designed for the other is a category error
-[@yeh2019infidelity]. Fixing both — pinning everything to log-odds, and rescaling
-LIME's slopes onto SHAP's contribution scale — is what the toggle above does. In
-this dataset the apparent SHAP–LIME rank correlation flips from **−0.10 to
-+0.66**, and the sign-disagreement rate drops from 0.55 to 0.28, the moment you
-compare like with like.
+[@yeh2019infidelity]. Matching the model output and rescaling LIME's slopes onto
+an approximate contribution scale is what the toggle above illustrates. In
+this dataset the rank correlation changes from **0.74 to 0.75**, while the
+sign-disagreement rate drops from 0.54 to 0.29. The small rank change is itself
+informative: unit correction matters here mainly for direction, not ordering.
 
 ::: {.quote}
-Most "SHAP and LIME completely disagree" blog posts are measuring a category
-error. The real, remaining disagreement is smaller — and that's the part worth
-investigating.
+Some apparent disagreement is a measurement artifact. Align the estimands and
+units first; investigate the disagreement that remains.
 :::
 
 ### 3. It doesn't reproduce
@@ -159,47 +159,48 @@ fact about your model — it is partly an artifact of the explainer's internal
 coin flips. Stochastic methods such as KernelSHAP and LIME sample perturbations
 to approximate their answer, so they *will* vary from run to run; the only
 question is how much. We measure this with run-to-run **rank correlation**,
-**sign agreement**, and **top-k overlap**. On the dataset used here, LIME's
-run-to-run rank correlation is ≈ 0.82 and its top-3 sign agreement is 1.0 —
-reproducible enough to act on, but only because we checked.
+**sign agreement**, and **top-k overlap**. On the current example, LIME's
+all-feature rank correlation is ≈ 0.72, its top-3 rank correlation is 1.0, and
+its sign agreement is ≈ 0.67. Those views answer different questions; none is
+enough on its own to justify action.
 
 TreeSHAP, by contrast, is deterministic and therefore trivially stable. Watch
 the trap here: *determinism is not correctness*. A wrong answer that never
 changes is stable, not trustworthy. Stability is necessary; it is never
 sufficient.
 
-### 4. It doesn't generalize across the distribution
+### 4. It isn't consistent across subgroups
 
 A single explanation is a point estimate, and a point estimate can be locally
 true and globally false. The question the previous three checks do not answer is
-whether the *story* — the ranking of important features — holds across
-subpopulations and under distribution shift. This is the least-known check and
-the one almost no tool offers: split your data into segments (by a demographic,
-by a cluster, by time), recompute global feature importance within each, and ask
-whether the ranking stays stable. We report **cross-segment rank stability**
+whether the *story* — the ranking of important features — holds across observed
+subpopulations. Split your evaluation data into prespecified segments (by a
+demographic, a cluster, or time), recompute global feature importance within
+each, and ask whether the ranking stays stable. We report **cross-segment rank stability**
 (the correlation of importance rankings between segments) and the **top-k flip
 rate** (how often a segment's top features differ from the reference). If the
 story flips between segments, the explanation is an artifact of one slice, not a
-property of the model — and it should not travel with the model into deployment.
+property of the model. This is a heterogeneity check, not a direct test of
+source-to-target distribution shift; drift evaluation needs separate source and
+deployment samples.
 
 ## A worked example: collinearity quietly lies to you
 
 To make these failures concrete, here is a deliberately small experiment with a
-known ground truth. We generate data where two features, `x0` and `x1`, actually
-drive the label, and where a third feature `x2` is *collinear with* `x0` — it is
-a near-copy of a real cause, but causally inert. The remaining features are pure
-noise. This is the setup where explanations misbehave in the wild: the model can
-afford to ignore `x2` entirely and still predict well, but the data gives an
-explainer every reason to confuse `x2` for `x0`.
+known data-generating process. We generate data where `x0` and `x1` directly
+enter the label mechanism, while `x2` is a noisy proxy for `x0` but does not
+enter that mechanism. The remaining features are pure noise. A predictive model
+can nevertheless use `x2`, so a faithful model explanation may correctly assign
+it credit without establishing that `x2` has a causal effect.
 
 ![Collinearity makes LIME credit a non-causal feature (x2), while SHAP resists it a little better.](figures/endpoints.png)
 
 The two panels show the same analysis at two levels of collinearity. On the left
-(correlation `ρ ≈ 0`), both SHAP and LIME correctly treat `x2` as unimportant —
-as they should, since it is causally inert. On the right (`ρ ≈ 0.85`), the story
-changes: LIME starts crediting `x2` as if it were a real driver, in some cases
-nearly as much as `x0` itself. SHAP resists a little better, but both are now
-telling a story that is partly false.
+(correlation `ρ ≈ 0`), both methods assign little model-level importance to
+`x2`. On the right (`ρ ≈ 0.85`), LIME assigns the proxy more credit, in some
+cases nearly as much as `x0`; SHAP is less affected in this particular setup.
+This is not proof that either method has recovered causality. It shows that the
+model's predictive reliance can be redistributed among correlated variables.
 
 Why does this happen? When `x2` is nearly indistinguishable from `x0`, the
 *prediction* barely changes whether the model uses one or the other — so the
@@ -207,9 +208,9 @@ attribution is **under-determined**. There is no single correct answer to "how
 much did `x0` contribute?", because the data cannot separate `x0`'s contribution
 from `x2`'s. Any reasonable method must break the tie arbitrarily, and different
 methods break it differently. Notice what this means for the trust battery: the
-model is fine — its predictions are just as good — but the *explanation* has
-quietly started teaching you a false causal story, and neither eyeballing the
-plot nor admiring its colors would stop you.
+model may predict well while its attribution remains ambiguous. The error occurs
+when a model-behaviour explanation is presented as a causal story; neither SHAP
+nor LIME supports that interpretation by itself.
 
 ## So what should you do instead?
 
@@ -220,7 +221,7 @@ A trust battery — run these before you trust any post-hoc explanation:
 | Faithful? | removal-effect correlation, comprehensiveness | corr high; ratio ≫ 1 |
 | Reproducible? | run-to-run rank/sign/top-k stability | corr ≈ 1 |
 | Internally consistent? | SHAP vs LIME agreement (same scale) | rank corr high |
-| Generalizes? | cross-segment stability, top-k flip rate | stable, low flip |
+| Consistent across observed groups? | cross-segment stability, top-k flip rate | stable, low flip |
 
 The checklist has one principle behind it: **measure, don't eyeball.** Stop
 asking whether an explanation *looks* right and start asking whether it survives
@@ -238,11 +239,13 @@ opinionated Python package that runs this battery for you.
 
 ## Caveats
 
-A few honest caveats. explaintrust is at v0.1 and covers **tabular data with
-SHAP and LIME only** — image, text, LLM interpretability, and counterfactual
-explanations are out of scope for now. The report thresholds are *sensible
-defaults, not calibrated claims*; they are labeled as such and meant to be
-overridden with domain knowledge. And the deepest caveat of all: these metrics
+A few honest caveats. explaintrust is at v0.1 and currently targets **numeric
+tabular binary-classification and regression workflows with SHAP and LIME** —
+multiclass evaluation, image, text, LLM interpretability, and counterfactual
+explanations are out of scope for now. Its subgroup checks do not measure
+deployment drift. The report thresholds are *documented defaults, not calibrated
+claims*; they should be overridden using domain evidence. And the deepest caveat
+of all: these metrics
 are **necessary but not sufficient**. No single number — and no battery of
 numbers — certifies an explanation. Explainability is not a badge you print; it
 is a property of the model, the data, and the audience together. The best these

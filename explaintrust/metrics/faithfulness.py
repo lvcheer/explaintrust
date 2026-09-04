@@ -16,6 +16,11 @@ Faithfulness metrics come in two families, and **they are not interchangeable**:
 Getting this right is the difference between "a number that looks rigorous" and
 "a number that means something". We keep the two families separate and label
 which explainer each metric is valid for.
+
+``removal_effect_correlation`` and ``comprehensiveness_ratio`` are tabular
+ablation diagnostics defined by this project (the latter is inspired by
+comprehensiveness-style evaluation); they are not claimed as verbatim published
+metric definitions.
 """
 
 from __future__ import annotations
@@ -43,7 +48,7 @@ def _perturb(
     if strategy == "mask":
         x_tilde = np.repeat(x[None, :], n_perturbations, axis=0)
         median = np.median(X_background, axis=0)
-        n_mask = rng.integers(1, d, size=n_perturbations)
+        n_mask = rng.integers(1, d, size=n_perturbations) if d > 1 else np.ones(n_perturbations, dtype=int)
         for i in range(n_perturbations):
             idx = rng.choice(d, size=int(n_mask[i]), replace=False)
             x_tilde[i, idx] = median[idx]
@@ -66,8 +71,9 @@ def infidelity(
 
     INFD = E[(φ·(x̃ − x) − (f(x̃) − f(x)))²]
 
-    By default this is **normalized** by the variance of the model's actual
-    output change, ``var(f(x̃) − f(x))``, so it becomes a scale-free fraction:
+    By default this is **normalized** by the mean squared model-output change,
+    ``E[(f(x̃) − f(x))²]``, so it becomes a scale-free fraction relative to the
+    zero-change baseline:
 
     * ``< 1``  — the explanation explains some of the output change;
     * ``≈ 1``  — no better than always predicting zero change (useless);
@@ -97,7 +103,10 @@ def infidelity(
 
     infid = float(np.mean((explained - actual) ** 2))
     if normalize:
-        infid = infid / (float(np.var(actual)) + 1e-12)
+        baseline = float(np.mean(actual ** 2))
+        if baseline < 1e-12:
+            return 0.0 if infid < 1e-12 else float("inf")
+        infid = infid / baseline
     return infid
 
 
@@ -155,6 +164,9 @@ def comprehensiveness_ratio(
     attr = np.asarray(attribution, dtype=float)
     median = np.median(np.asarray(X_background, dtype=float), axis=0)
     d = len(x)
+    if top_k < 1:
+        raise ValueError("top_k must be at least 1")
+    top_k = min(top_k, d)
     base = float(model(x[None, :])[0])
 
     top_idx = np.argsort(np.abs(attr))[::-1][:top_k]

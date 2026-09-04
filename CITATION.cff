@@ -2,9 +2,8 @@ cff-version: 1.2.0
 message: "If you use this software, please cite it as below."
 title: "explaintrust"
 abstract: >-
-  evaluate the trustworthiness of post-hoc explanations (SHAP, LIME) with
-  faithfulness, stability, cross-explainer consistency, and
-  distribution-verification metrics.
+  Diagnose faithfulness, stability, cross-explainer agreement, and subgroup
+  consistency of tabular post-hoc explanations produced by SHAP and LIME.
 authors:
   - name: "lvcheer"
 version: 0.1.0
