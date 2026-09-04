@@ -59,11 +59,20 @@ does not.
 
 ## Install & run
 
-Create a virtual environment and install the package in editable mode
-(installs dependencies + makes `import explaintrust` work from anywhere):
+After the first PyPI release, install the library with:
 
 ```bash
-python3 -m venv .venv && source .venv/bin/activate
+pip install explaintrust
+```
+
+To run the interactive app or contribute, clone the repository and install it
+in editable mode:
+
+```bash
+git clone https://github.com/lvcheer/explaintrust.git
+cd explaintrust
+python3 -m venv .venv
+source .venv/bin/activate
 pip install -e ".[app]"          # ".[app]" also pulls streamlit + plotly
 ```
 
@@ -81,6 +90,36 @@ streamlit run app/streamlit_app.py
 
 Then open the printed URL (default http://localhost:8501).
 
+### Library quickstart
+
+```python
+from explaintrust import (
+    lime_attributions,
+    prediction_output_space,
+    scalar_predictor,
+    shap_attributions,
+    to_contribution_scale,
+)
+
+# model is fitted; X_eval and X_background are numeric 2D arrays.
+output_space = prediction_output_space(model)
+predict = scalar_predictor(model, output_space=output_space)
+shap_values = shap_attributions(
+    model, X_eval, X_background=X_background, method="auto"
+)
+lime_slopes = lime_attributions(
+    model, X_eval, X_background, output_space=output_space
+)
+lime_contributions = to_contribution_scale(
+    lime_slopes, X_eval, X_background
+)
+```
+
+See [`examples/demo.py`](https://github.com/lvcheer/explaintrust/blob/main/examples/demo.py)
+for the complete metric and report
+pipeline. Public imports are listed in `explaintrust.__all__`; compatibility is
+maintained according to semantic versioning during the alpha phase.
+
 ### Tests
 
 ```bash
@@ -89,6 +128,12 @@ python -m pytest -q
 ```
 
 The same suite also runs in GitHub Actions on Python 3.9 and 3.12.
+
+For development and release instructions, see
+[CONTRIBUTING.md](https://github.com/lvcheer/explaintrust/blob/main/CONTRIBUTING.md),
+[SECURITY.md](https://github.com/lvcheer/explaintrust/blob/main/SECURITY.md),
+[CHANGELOG.md](https://github.com/lvcheer/explaintrust/blob/main/CHANGELOG.md), and
+[RELEASING.md](https://github.com/lvcheer/explaintrust/blob/main/RELEASING.md).
 
 ---
 
@@ -165,10 +210,19 @@ report means that no configured check failed; it is not a certificate of truth.
 
 ### 安装与运行
 
-创建虚拟环境并以可编辑模式安装（会直接装好依赖，并让 `import explaintrust` 在任何目录可用）：
+首次发布到 PyPI 后，可直接安装 Python 库：
 
 ```bash
-python3 -m venv .venv && source .venv/bin/activate
+pip install explaintrust
+```
+
+如需运行交互应用或参与开发，请克隆仓库并以可编辑模式安装：
+
+```bash
+git clone https://github.com/lvcheer/explaintrust.git
+cd explaintrust
+python3 -m venv .venv
+source .venv/bin/activate
 pip install -e ".[app]"          # ".[app]" 会额外拉取 streamlit + plotly
 ```
 
@@ -186,6 +240,22 @@ streamlit run app/streamlit_app.py
 
 然后打开打印出来的网址（默认 http://localhost:8501）。
 
+#### Python 库快速示例
+
+```python
+from explaintrust import prediction_output_space, scalar_predictor, shap_attributions
+
+output_space = prediction_output_space(model)
+predict = scalar_predictor(model, output_space=output_space)
+shap_values = shap_attributions(
+    model, X_eval, X_background=X_background, method="auto"
+)
+```
+
+完整指标与报告流程见
+[`examples/demo.py`](https://github.com/lvcheer/explaintrust/blob/main/examples/demo.py)。公开 API 以
+`explaintrust.__all__` 为准；alpha 阶段按语义化版本规则管理兼容性。
+
 #### 测试
 
 ```bash
@@ -194,6 +264,12 @@ python -m pytest -q
 ```
 
 同一套测试也会在 GitHub Actions 的 Python 3.9 与 3.12 环境中运行。
+
+开发、安全、变更与发布流程分别见
+[CONTRIBUTING.md](https://github.com/lvcheer/explaintrust/blob/main/CONTRIBUTING.md)、
+[SECURITY.md](https://github.com/lvcheer/explaintrust/blob/main/SECURITY.md)、
+[CHANGELOG.md](https://github.com/lvcheer/explaintrust/blob/main/CHANGELOG.md) 和
+[RELEASING.md](https://github.com/lvcheer/explaintrust/blob/main/RELEASING.md)。
 
 ### 仓库结构
 

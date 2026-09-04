@@ -1,17 +1,19 @@
 [build-system]
-requires = ["setuptools>=61"]
+requires = ["setuptools>=77"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "explaintrust"
 version = "0.1.0"
-description = "Evaluate the trustworthiness of post-hoc explanations (SHAP, LIME)."
+description = "Diagnostic metrics for tabular SHAP and LIME explanations."
 readme = "README.md"
 requires-python = ">=3.9"
-license = { text = "MIT" }
+license = "MIT"
+license-files = ["LICENSE"]
 authors = [{ name = "lvcheer" }]
 classifiers = [
-    "License :: OSI Approved :: MIT License",
+    "Development Status :: 3 - Alpha",
+    "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
@@ -35,14 +37,17 @@ dependencies = [
 # Interactive demo / article figures
 app = ["streamlit>=1.45", "plotly>=5.0", "matplotlib>=3.6"]
 test = ["pytest>=8.0"]
+release = ["build>=1.2", "twine>=5.0"]
 
 [project.urls]
 Homepage = "https://github.com/lvcheer/explaintrust"
 Repository = "https://github.com/lvcheer/explaintrust"
 "Issue Tracker" = "https://github.com/lvcheer/explaintrust/issues"
+Changelog = "https://github.com/lvcheer/explaintrust/blob/main/CHANGELOG.md"
 
 [tool.setuptools.packages.find]
 include = ["explaintrust*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+addopts = "-ra"

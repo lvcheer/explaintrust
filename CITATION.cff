@@ -7,7 +7,7 @@ abstract: >-
 authors:
   - name: "lvcheer"
 version: 0.1.0
-date-released: 2026-08-26
+date-released: 2026-09-04
 license: MIT
 repository-code: "https://github.com/lvcheer/explaintrust"
 url: "https://github.com/lvcheer/explaintrust"

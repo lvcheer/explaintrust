@@ -1,7 +1,7 @@
 """Evaluation metrics for post-hoc explanations.
 
-Each submodule implements a family of metrics from the literature. The
-convention throughout:
+The package combines literature-based measures with explicitly documented
+project-specific diagnostics. The convention throughout:
 
 * lower is better for error-like metrics (infidelity, sensitivity,
   disagreement-rate, flip-rate);

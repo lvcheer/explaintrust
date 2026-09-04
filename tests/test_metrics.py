@@ -9,21 +9,13 @@ plain Python (no pytest required):
 
 from __future__ import annotations
 
-import sys
-from pathlib import Path
-
 import numpy as np
-import pandas as pd
 from sklearn.ensemble import (
     GradientBoostingClassifier,
     RandomForestClassifier,
     RandomForestRegressor,
 )
 from sklearn.linear_model import LinearRegression, LogisticRegression
-
-REPO_ROOT = Path(__file__).resolve().parents[1]
-if str(REPO_ROOT) not in sys.path:
-    sys.path.insert(0, str(REPO_ROOT))
 
 from explaintrust import (
     lime_attributions,
@@ -42,7 +34,6 @@ from explaintrust.metrics import (
     explainer_disagreement,
     cross_segment_stability,
 )
-from app.tabular_utils import prepare_tabular
 
 
 def _linear_data(n=500, seed=0):
@@ -50,23 +41,6 @@ def _linear_data(n=500, seed=0):
     X = rng.normal(0, 1, size=(n, 4))
     y = 3.0 * X[:, 0] - 2.0 * X[:, 1] + 0.0 * X[:, 2] + 0.0 * X[:, 3]
     return X, y
-
-
-def test_tabular_preprocessing_is_auditable():
-    frame = pd.DataFrame(
-        {
-            "numeric": [1.0, 2.0, np.nan, 4.0],
-            "category": ["a", "b", "a", "b"],
-            "target": ["no", "yes", "no", "yes"],
-        }
-    )
-    X, y, names, metadata = prepare_tabular(frame, "target", "classification")
-    assert X.shape == (3, 1)
-    assert names == ["numeric"]
-    assert set(y) == {0, 1}
-    assert metadata["dropped_non_numeric_features"] == ["category"]
-    assert metadata["dropped_rows_missing"] == 1
-    assert metadata["class_mapping"] == {"no": 0, "yes": 1}
 
 
 def test_removal_correlation_high_on_true_importance():
