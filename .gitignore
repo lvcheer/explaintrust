@@ -11,6 +11,9 @@ dist/
 # Quarto build output
 _site/
 
+# Downloaded benchmark datasets
+experiments/data/
+
 # macOS
 .DS_Store
 
