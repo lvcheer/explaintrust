@@ -31,13 +31,17 @@ def explainer_disagreement(attr_a: np.ndarray, attr_b: np.ndarray, top_k: int = 
         "sign_disagreement"       — fraction of features with opposite
                                     (non-zero) signs (lower better)
         "rank_corr"               — Spearman correlation of the two rankings
+                                    over *all* features (higher better). Degrades
+                                    with feature count; prefer ``topk_rank_corr``.
+        "topk_rank_corr"          — Spearman correlation over the top-k features
+                                    only, robust to many noise features
                                     (higher better)
         "topk_overlap"            — Jaccard overlap of top-k feature sets
                                     (higher better)
         "magnitude_disagreement"  — mean normalized |attr_a − attr_b| gap over
                                     the top-k features (lower better)
-        "per_feature_gap"         — |attr_a − attr_b| normalized by the mean
-                                    |attr| magnitude (vector)
+        "per_feature_gap"         — |attr_a − attr_b| normalized by that
+                                    feature's own scale (vector)
     """
     a = np.asarray(attr_a, dtype=float)
     b = np.asarray(attr_b, dtype=float)
@@ -57,6 +61,13 @@ def explainer_disagreement(attr_a: np.ndarray, attr_b: np.ndarray, top_k: int = 
     top_b = set(np.argsort(np.abs(b))[::-1][:top_k])
     topk_overlap = len(top_a & top_b) / top_k
 
+    # Top-k rank correlation: rank agreement on the features that matter,
+    # robust to the number of noise features (full-d rank corr degrades with d).
+    combined = np.abs(a) + np.abs(b)
+    top_idx = np.argsort(combined)[::-1][:top_k]
+    ck = stats.spearmanr(a[top_idx], b[top_idx]).correlation
+    topk_rank_corr = float(ck) if ck is not None else float("nan")
+
     # Per-feature *relative* gap: how much the two explainers disagree on each
     # feature's magnitude, normalized by that feature's own combined scale
     # (range ~[0, 2]; 0 = agree, 2 = one side is exactly zero while the other
@@ -65,15 +76,12 @@ def explainer_disagreement(attr_a: np.ndarray, attr_b: np.ndarray, top_k: int = 
     # disagreeing on how much of the credit x2 deserves.
     relative_gap = np.abs(a - b) / (0.5 * (np.abs(a) + np.abs(b)) + 1e-12)
 
-    # Aggregate over the features both explainers care about most (by combined
-    # |attribution|) so noise features flapping around zero don't dominate.
-    combined = np.abs(a) + np.abs(b)
-    top_idx = np.argsort(combined)[::-1][:top_k]
     magnitude_disagreement = float(np.mean(relative_gap[top_idx]))
 
     return {
         "sign_disagreement": sign_dis,
         "rank_corr": rank_corr,
+        "topk_rank_corr": topk_rank_corr,
         "topk_overlap": topk_overlap,
         "magnitude_disagreement": magnitude_disagreement,
         "per_feature_gap": relative_gap,

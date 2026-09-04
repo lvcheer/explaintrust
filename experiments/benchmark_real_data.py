@@ -72,9 +72,11 @@ CURRENT_DEFAULTS = {
     "infidelity": ("lower", 0.1, 0.5),
     "sensitivity": ("lower", 0.5, 2.0),
     "stability_rank": ("higher", 0.9, 0.7),
+    "stability_rank_topk": ("higher", 0.9, 0.7),
     "stability_sign": ("higher", 0.9, 0.7),
     "disagreement_sign": ("lower", 0.2, 0.5),
     "disagreement_rank": ("higher", 0.7, 0.4),
+    "disagreement_rank_topk": ("higher", 0.7, 0.4),
     "disagreement_topk": ("higher", 0.66, 0.33),
     "disagreement_magnitude": ("lower", 1.0, 1.5),
     "distribution_rank": ("higher", 0.7, 0.4),
@@ -127,11 +129,12 @@ def _run_metrics(model, X_explain, X_bg, names, X_dist, seed):
 
     stab = cross_run_stability(lime_seeded, n_runs=5, top_k=TOPK)
 
-    ds = {"sign": [], "rank": [], "topk": [], "mag": []}
+    ds = {"sign": [], "rank": [], "ranktopk": [], "topk": [], "mag": []}
     for i in range(n):
         d = explainer_disagreement(S[i], C[i], top_k=TOPK)
         ds["sign"].append(d["sign_disagreement"])
         ds["rank"].append(d["rank_corr"])
+        ds["ranktopk"].append(d["topk_rank_corr"])
         ds["topk"].append(d["topk_overlap"])
         ds["mag"].append(d["magnitude_disagreement"])
 
@@ -153,9 +156,11 @@ def _run_metrics(model, X_explain, X_bg, names, X_dist, seed):
         "infidelity": nanmean(infids),
         "sensitivity": sens,
         "stability_rank": stab["rank_corr"],
+        "stability_rank_topk": stab["topk_rank_corr"],
         "stability_sign": stab["sign_agreement"],
         "disagreement_sign": nanmean(ds["sign"]),
         "disagreement_rank": nanmean(ds["rank"]),
+        "disagreement_rank_topk": nanmean(ds["ranktopk"]),
         "disagreement_topk": nanmean(ds["topk"]),
         "disagreement_magnitude": nanmean(ds["mag"]),
         "distribution_rank": dist["rank_corr"],

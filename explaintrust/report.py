@@ -165,16 +165,19 @@ def build_trust_report(
         )
 
     # --- stability ----------------------------------------------------------
-    rank_corr = stability.get("rank_corr", float("nan"))
+    # Rank stability is measured over the top-k features only: a full-d Spearman
+    # correlation degrades with the feature count (noise features shuffle ranks)
+    # and would flag every high-dimensional explanation as unstable.
+    rank_corr = stability.get("topk_rank_corr", stability.get("rank_corr", float("nan")))
     sign_agree = stability.get("sign_agreement", float("nan"))
     results.append(
         MetricResult(
-            name="Run-to-run rank stability",
+            name=f"Run-to-run rank stability (top-{top_k})",
             value=rank_corr,
             direction="higher",
             verdict=_verdict("stability_rank", rank_corr, "higher", 0.9, 0.7),
-            explanation="Consistency of the feature ranking across random seeds of "
-                        "the explainer. High = reproducible.",
+            explanation="Consistency of the top-k feature ranking across random "
+                        "seeds of the explainer. High = reproducible.",
         )
     )
     results.append(
@@ -190,7 +193,7 @@ def build_trust_report(
 
     # --- cross-explainer disagreement --------------------------------------
     sign_dis = disagreement.get("sign_disagreement", float("nan"))
-    rank_agree = disagreement.get("rank_corr", float("nan"))
+    rank_agree = disagreement.get("topk_rank_corr", disagreement.get("rank_corr", float("nan")))
     top_overlap = disagreement.get("topk_overlap", float("nan"))
     magnitude_dis = disagreement.get("magnitude_disagreement", float("nan"))
     results.append(
@@ -205,11 +208,12 @@ def build_trust_report(
     )
     results.append(
         MetricResult(
-            name="SHAP vs LIME rank agreement",
+            name=f"SHAP vs LIME rank agreement (top-{top_k})",
             value=rank_agree,
             direction="higher",
             verdict=_verdict("disagreement_rank", rank_agree, "higher", 0.7, 0.4),
-            explanation="Correlation between SHAP and LIME feature rankings.",
+            explanation="Correlation between SHAP and LIME rankings over the top-k "
+                        "features (robust to the number of noise features).",
         )
     )
     results.append(

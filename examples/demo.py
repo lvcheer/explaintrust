@@ -101,22 +101,25 @@ def main() -> None:
     )
 
     # --- SHAP vs LIME disagreement (on the same contribution scale) --------
-    dis_sign, dis_rank, dis_topk, dis_mag = [], [], [], []
+    dis_sign, dis_rank_topk, dis_rank_full, dis_topk, dis_mag = [], [], [], [], []
     for i in range(n_explain):
         d = explainer_disagreement(shap_attr[i], lime_contrib[i], top_k=3)
         dis_sign.append(d["sign_disagreement"])
-        dis_rank.append(d["rank_corr"])
+        dis_rank_topk.append(d["topk_rank_corr"])
+        dis_rank_full.append(d["rank_corr"])
         dis_topk.append(d["topk_overlap"])
         dis_mag.append(d["magnitude_disagreement"])
     disagreement = {
         "sign_disagreement": float(np.mean(dis_sign)),
-        "rank_corr": float(np.nanmean(dis_rank)),
+        "topk_rank_corr": float(np.nanmean(dis_rank_topk)),
+        "rank_corr": float(np.nanmean(dis_rank_full)),
         "topk_overlap": float(np.mean(dis_topk)),
         "magnitude_disagreement": float(np.nanmean(dis_mag)),
     }
     print(
         f"SHAP vs LIME: sign_disagreement={disagreement['sign_disagreement']:.3f}, "
-        f"rank_corr={disagreement['rank_corr']:.3f}, "
+        f"rank_corr(top-3)={disagreement['topk_rank_corr']:.3f}, "
+        f"rank_corr(all)={disagreement['rank_corr']:.3f}, "
         f"top3_overlap={disagreement['topk_overlap']:.3f}, "
         f"magnitude_disagreement={disagreement['magnitude_disagreement']:.3f}\n"
     )

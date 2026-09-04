@@ -28,11 +28,11 @@
   "metrics": {
     "removal_corr": {
       "direction": "higher",
-      "pooled_median": 0.454,
-      "pooled_p10": 0.3706,
-      "pooled_p90": 0.5056,
+      "pooled_median": 0.4543,
+      "pooled_p10": 0.3789,
+      "pooled_p90": 0.5083,
       "per_dataset_median": {
-        "adult": 0.4249,
+        "adult": 0.4255,
         "diabetes": 0.4767
       },
       "current_default": [
@@ -96,6 +96,20 @@
         0.7
       ]
     },
+    "stability_rank_topk": {
+      "direction": "higher",
+      "pooled_median": 1.0,
+      "pooled_p10": 0.94,
+      "pooled_p90": 1.0,
+      "per_dataset_median": {
+        "adult": 1.0,
+        "diabetes": 1.0
+      },
+      "current_default": [
+        0.9,
+        0.7
+      ]
+    },
     "stability_sign": {
       "direction": "higher",
       "pooled_median": 1.0,
@@ -132,6 +146,20 @@
       "per_dataset_median": {
         "adult": 0.4193,
         "diabetes": 0.5177
+      },
+      "current_default": [
+        0.7,
+        0.4
+      ]
+    },
+    "disagreement_rank_topk": {
+      "direction": "higher",
+      "pooled_median": 0.75,
+      "pooled_p10": 0.25,
+      "pooled_p90": 1.0,
+      "per_dataset_median": {
+        "adult": 0.5625,
+        "diabetes": 0.875
       },
       "current_default": [
         0.7,

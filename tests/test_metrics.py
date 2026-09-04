@@ -107,6 +107,7 @@ def test_deterministic_explainer_is_perfectly_stable():
                                  nsamples=300, seed=0)[0]  # seed ignored -> identical
     res = cross_run_stability(deterministic, n_runs=5, top_k=2)
     assert res["rank_corr"] == 1.0
+    assert np.allclose(res["topk_rank_corr"], 1.0)
     assert res["sign_agreement"] == 1.0
 
 
@@ -115,8 +116,20 @@ def test_identical_attributions_have_zero_disagreement():
     d = explainer_disagreement(a, a, top_k=2)
     assert d["sign_disagreement"] == 0.0
     assert d["rank_corr"] == 1.0
+    assert np.allclose(d["topk_rank_corr"], 1.0)
     assert d["topk_overlap"] == 1.0
     assert d["magnitude_disagreement"] == 0.0
+
+
+def test_topk_rank_corr_robust_to_noise_features():
+    # Same top-3 ranking, but the many noise features shuffle their ranks:
+    # the full-d rank correlation drops, the top-k one stays perfect. This is
+    # the dimension-robustness the real-data benchmark demanded.
+    a = np.array([0.8, 0.6, 0.4, 0.03, 0.02, 0.01])
+    b = np.array([0.8, 0.6, 0.4, 0.01, 0.03, 0.02])
+    d = explainer_disagreement(a, b, top_k=3)
+    assert d["topk_rank_corr"] == 1.0
+    assert d["topk_rank_corr"] > d["rank_corr"]
 
 
 def test_magnitude_disagreement_detects_scale_gap():
