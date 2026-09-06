@@ -20,6 +20,8 @@ def _top_k_overlap(a: np.ndarray, b: np.ndarray, k: int) -> float:
     k = min(k, len(a), len(b))
     if k < 1:
         raise ValueError("top_k must be at least 1")
+    if k == len(a) == len(b):
+        return float("nan")
     top_a = set(np.argsort(np.abs(a))[::-1][:k])
     top_b = set(np.argsort(np.abs(b))[::-1][:k])
     return len(top_a & top_b) / k
@@ -56,6 +58,10 @@ def cross_run_stability(
         "topk_overlap"    — mean pairwise shared-feature fraction of top-k sets
                             (only if top_k given)
         "std"             — per-feature std of attribution across runs (vector)
+        "n_features"      — feature count, for report applicability checks
+
+    Top-k rank correlation is NaN for k=1. Top-k overlap is NaN when
+    k covers all features, since the identical sets provide no evidence.
     """
     runs = np.stack([np.asarray(explainer(seed=s), dtype=float) for s in range(n_runs)])
     # runs: (n_runs, d)
@@ -76,7 +82,7 @@ def cross_run_stability(
                 corrs.append(c)
             ck = stats.spearmanr(
                 np.abs(runs[i][top_features]), np.abs(runs[j][top_features])
-            ).correlation
+            ).correlation if k > 1 else float("nan")
             if ck is not None:
                 corrs_k.append(ck)
     rank_corr = float(np.mean(corrs)) if corrs else float("nan")
@@ -96,6 +102,7 @@ def cross_run_stability(
         "topk_rank_corr": topk_rank_corr,
         "sign_agreement": sign_agree,
         "std": per_feature_std,
+        "n_features": d,
     }
 
     if top_k is not None:

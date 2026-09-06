@@ -1,0 +1,10 @@
+{
+  "python": "3.9.6",
+  "shap": "0.49.1",
+  "binary_class_zero_equals_class_one": true,
+  "kernel_same_api_seed_global_rng_change_max_gap": 0.2266815213864637,
+  "comprehensiveness_when_k_equals_d": 0.9999999999996666,
+  "nan_attributions_sensitivity": 0.0,
+  "infinite_infidelity_verdict": "info",
+  "linear_shap_vs_full_background_formula_max_gap": 0.35262600747181594
+}

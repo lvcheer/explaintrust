@@ -1,5 +1,12 @@
 # Threshold calibration experiment
 
+**Protocol update (2026-09-05).** The script now uses interventional TreeSHAP
+with the full explicit background shared with LIME. The checked-in
+`calibration.json` and tables below are historical results from the earlier
+training-path protocol; they have not been rerun for this change. Recompute and
+review thresholds after the remaining correctness fixes, before using them to
+characterize the updated pipeline.
+
 A controlled study that measures each report metric in engineered nominally
 "good" and "bad" regimes, to see (a) which metrics discriminate those regimes,
 and (b) whether thresholds can be fitted from data. Shuffled-attribution regimes
@@ -9,8 +16,8 @@ not ground truth that an explanation is trustworthy. The result is a
 
 ## Why calibrate?
 
-`explaintrust/report.py` maps every metric to a verdict (`good` / `warn` /
-`bad`) using two thresholds per metric. Those thresholds were originally chosen
+The original report mapped every metric to a verdict (`good` / `warn` /
+`bad`) using thresholds. Those thresholds were originally chosen
 by hand — the weakest link in an otherwise defensible pipeline. This study asks
 whether the data can choose better boundaries, and in doing so it exposes which
 metrics *can't* be calibrated on these axes.
@@ -95,9 +102,11 @@ not on the samples used to choose the thresholds.
 ## Outcome
 
 The actionable result is a reusable **held-out calibration harness** and clear
-negative evidence against auto-adopting most fitted thresholds. The report keeps
-documented defaults, including magnitude disagreement (good ≤ 1.0, warn ≤ 1.5),
-but these are configurable diagnostics rather than validated trust boundaries.
+negative evidence against auto-adopting most fitted thresholds. The current
+report scores only faithfulness, sensitivity and run-to-run stability. Method
+disagreement and subgroup heterogeneity retain their numerical values as
+descriptive diagnostics and do not affect the overall verdict. Historical
+disagreement/subgroup thresholds in the tables above are no longer applied.
 
 ## Applying the results
 

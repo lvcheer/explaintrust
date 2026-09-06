@@ -16,9 +16,13 @@ from sklearn.ensemble import (
     RandomForestRegressor,
 )
 from sklearn.linear_model import LinearRegression, LogisticRegression
+from sklearn.neural_network import MLPClassifier, MLPRegressor
+from sklearn.pipeline import make_pipeline
+from sklearn.preprocessing import StandardScaler
+from sklearn.metrics import accuracy_score, balanced_accuracy_score, precision_score, recall_score, f1_score, roc_auc_score, roc_curve, confusion_matrix, mean_absolute_error, mean_squared_error, r2_score
 
-CLASSIFICATION_MODELS = ["Random Forest", "Gradient Boosting", "Logistic Regression"]
-REGRESSION_MODELS = ["Random Forest", "Gradient Boosting", "Linear Regression"]
+CLASSIFICATION_MODELS = ["Random Forest", "MLP", "XGBoost", "Gradient Boosting", "Logistic Regression"]
+REGRESSION_MODELS = ["Random Forest", "MLP", "XGBoost", "Gradient Boosting", "Linear Regression"]
 
 
 def read_csv_bytes(data: bytes) -> pd.DataFrame:
@@ -95,8 +99,23 @@ def prepare_tabular(df: pd.DataFrame, target_col: str, task: str):
     return X.to_numpy(dtype=float), y, list(X.columns), metadata
 
 
-def make_model(task: str, model_name: str, n_estimators: int = 100, max_depth: int = 4, seed: int = 0):
+def make_model(task: str, model_name: str, n_estimators: int = 100, max_depth: int = 4, seed: int = 0, *, learning_rate: float = 0.1, max_iter: int = 1000,
+               regularization: float = 1.0, hidden_layers=(64, 32), alpha: float = 0.0001,
+               fit_intercept: bool = True):
     """Build an *untrained* sklearn model matching ``task`` and ``model_name``."""
+    choices = CLASSIFICATION_MODELS if task == "classification" else REGRESSION_MODELS
+    if task not in ("classification", "regression") or model_name not in choices:
+        raise ValueError(f"unsupported task/model: {task}/{model_name}")
+    if model_name == "MLP":
+        cls = MLPClassifier if task == "classification" else MLPRegressor
+        return make_pipeline(StandardScaler(), cls(hidden_layer_sizes=hidden_layers,
+            learning_rate_init=learning_rate, max_iter=max_iter, alpha=alpha,
+            random_state=seed, early_stopping=False))
+    if model_name == "XGBoost":
+        from xgboost import XGBClassifier, XGBRegressor
+        cls = XGBClassifier if task == "classification" else XGBRegressor
+        return cls(n_estimators=n_estimators, max_depth=max_depth, random_state=seed,
+                   n_jobs=1, tree_method="hist", learning_rate=learning_rate)
     if task == "classification":
         if model_name == "Random Forest":
             return RandomForestClassifier(
@@ -104,9 +123,9 @@ def make_model(task: str, model_name: str, n_estimators: int = 100, max_depth: i
             )
         if model_name == "Gradient Boosting":
             return GradientBoostingClassifier(
-                n_estimators=n_estimators, max_depth=max_depth, random_state=seed
+                learning_rate=learning_rate, n_estimators=n_estimators, max_depth=max_depth, random_state=seed
             )
-        return LogisticRegression(max_iter=1000, random_state=seed)
+        return LogisticRegression(C=regularization, max_iter=max_iter, random_state=seed, fit_intercept=fit_intercept)
 
     # regression
     if model_name == "Random Forest":
@@ -115,9 +134,9 @@ def make_model(task: str, model_name: str, n_estimators: int = 100, max_depth: i
         )
     if model_name == "Gradient Boosting":
         return GradientBoostingRegressor(
-            n_estimators=n_estimators, max_depth=max_depth, random_state=seed
+            learning_rate=learning_rate, n_estimators=n_estimators, max_depth=max_depth, random_state=seed
         )
-    return LinearRegression()
+    return LinearRegression(fit_intercept=fit_intercept)
 
 
 def segment_feature(X: np.ndarray) -> int:
@@ -128,3 +147,27 @@ def segment_feature(X: np.ndarray) -> int:
     """
     std = np.std(np.asarray(X, dtype=float), axis=0)
     return int(np.argmax(std))
+
+
+def evaluate_model(model, X, y, task):
+    """Held-out metrics; AUC uses scores, never thresholded labels."""
+    prediction = model.predict(X)
+    if task == "regression":
+        return {"R²": float(r2_score(y, prediction)),
+                "MAE": float(mean_absolute_error(y, prediction)),
+                "RMSE": float(np.sqrt(mean_squared_error(y, prediction)))}
+    labels = np.asarray(model.classes_)
+    positive = labels[1]
+    probabilities = np.asarray(model.predict_proba(X))[:, 1]
+    truth = np.asarray(y) == positive
+    both = len(np.unique(truth)) == 2
+    fpr, tpr, _ = roc_curve(truth, probabilities) if both else ([], [], [])
+    return {"Accuracy": float(accuracy_score(y, prediction)),
+            "Balanced accuracy": float(balanced_accuracy_score(y, prediction)),
+            "Precision": float(precision_score(y, prediction, pos_label=positive, zero_division=0)),
+            "Recall": float(recall_score(y, prediction, pos_label=positive, zero_division=0)),
+            "F1": float(f1_score(y, prediction, pos_label=positive, zero_division=0)),
+            "ROC AUC": float(roc_auc_score(truth, probabilities)) if both else None,
+            "confusion_matrix": confusion_matrix(y, prediction, labels=labels).tolist(),
+            "classes": labels.tolist(), "fpr": np.asarray(fpr).tolist(), "tpr": np.asarray(tpr).tolist(),
+            "positive_class": positive.item() if hasattr(positive, "item") else positive}

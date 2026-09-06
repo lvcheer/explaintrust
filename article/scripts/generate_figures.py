@@ -68,10 +68,12 @@ def _fit_and_explain(X, y, names, n_explain, seed):
     model.fit(X[:n_train], y[:n_train])
     X_bg = X[:n_train][rng.choice(n_train, size=80, replace=False)]
     X_explain = X[n_train:][:n_explain]
-    shap = shap_attributions(model, X_explain, method="tree")
+    shap, context = shap_attributions(
+        model, X_explain, X_background=X_bg, method="tree", return_context=True,
+    )
     raw_lime = lime_attributions(model, X_explain, X_bg, feature_names=names, num_samples=1500, seed=seed)
     contrib_lime = to_contribution_scale(raw_lime, X_explain, X_bg)
-    return shap, raw_lime, contrib_lime
+    return shap, raw_lime, contrib_lime, context
 
 
 def _agreement(a, b, n_explain):
@@ -89,7 +91,7 @@ def main() -> None:
     # ------------------------------------------------------------------ #
     X, y, names = _make_dataset_with_rho(n=1500, rho=0.85, seed=0)
     n_explain = 20
-    shap, raw_lime, contrib_lime = _fit_and_explain(X, y, names, n_explain, seed=0)
+    shap, raw_lime, contrib_lime, shap_context = _fit_and_explain(X, y, names, n_explain, seed=0)
 
     before_corr, before_sign = _agreement(shap, raw_lime, n_explain)
     after_corr, after_sign = _agreement(shap, contrib_lime, n_explain)
@@ -105,6 +107,7 @@ def main() -> None:
         "before_sign_disagreement": round(before_sign, 3),
         "after_sign_disagreement": round(after_sign, 3),
         "n_instances": n_explain,
+        "shap_context": shap_context,
     }
     with open(os.path.join(FIG_DIR, "conversion.json"), "w") as f:
         json.dump(payload, f, indent=2)
@@ -130,7 +133,7 @@ def main() -> None:
     profiles = {}
     for key, rho in [("clean", 0.0), ("collinear", 0.85)]:
         Xr, yr, nr = _make_dataset_with_rho(n=1200, rho=rho, seed=42)
-        sr, _, cr = _fit_and_explain(Xr, yr, nr, n_explain=10, seed=42)
+        sr, _, cr, _ = _fit_and_explain(Xr, yr, nr, n_explain=10, seed=42)
         profiles[key] = {
             "features": nr[:4],
             "shap": [round(float(np.mean(sr[:, j])), 3) for j in range(4)],

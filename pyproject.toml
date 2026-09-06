@@ -36,6 +36,7 @@ dependencies = [
 [project.optional-dependencies]
 # Interactive demo / article figures
 app = ["streamlit>=1.45", "plotly>=5.0", "matplotlib>=3.6"]
+xgboost = ["xgboost>=2,<3"]
 test = ["pytest>=8.0"]
 release = ["build>=1.2", "twine>=5.0"]
 

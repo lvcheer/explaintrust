@@ -18,6 +18,8 @@ def _top_k_flip_rate(ranks_per_segment: np.ndarray, k: int) -> float:
     if k < 1:
         raise ValueError("top_k must be at least 1")
     k = min(k, ranks_per_segment.shape[1])
+    if k == ranks_per_segment.shape[1]:
+        return float("nan")
     base = set(np.argsort(np.abs(ranks_per_segment[0]))[::-1][:k])
     flips = 0
     for seg in ranks_per_segment[1:]:
@@ -52,6 +54,10 @@ def cross_segment_stability(
                           from the reference segment's (lower better)
         "importances"   — (n_segments, d) matrix of mean |attribution| per
                           segment, and "segment_ids" list.
+        "n_features"    — feature count, for report applicability checks
+
+    Top-k flip rate is NaN when k covers all features: every segment's set
+    is identical by construction and provides no evidence of consistency.
     """
     attributions = np.asarray(attributions, dtype=float)
     segments = np.asarray(segments)
@@ -75,11 +81,12 @@ def cross_segment_stability(
                 corrs.append(c)
     rank_corr = float(np.mean(corrs)) if corrs else float("nan")
 
-    flip_rate = _top_k_flip_rate(importances, top_k) if len(seg_ids) > 1 else 0.0
+    flip_rate = _top_k_flip_rate(importances, top_k)
 
     return {
         "rank_corr": rank_corr,
         "topk_flip_rate": flip_rate,
         "importances": importances,
         "segment_ids": list(seg_ids),
+        "n_features": attributions.shape[1],
     }

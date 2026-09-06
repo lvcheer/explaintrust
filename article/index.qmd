@@ -11,6 +11,12 @@ description: >
 bibliography: references.bib
 ---
 
+> **Version note (2026-09-05):** The figures and numerical examples below are
+> historical snapshots. The library now aligns the full SHAP/LIME background;
+> these examples have not yet been regenerated to evaluate that updated protocol.
+> Method disagreement and subgroup heterogeneity are now descriptive diagnostics,
+> excluded from the library's overall quality-check verdict.
+
 ::: {.lead}
 Type `shap.summary_plot(model, X)` and you get a beautiful, publication-ready
 picture of "what your model thinks". It *feels* like understanding. It often
@@ -178,9 +184,9 @@ subpopulations. Split your evaluation data into prespecified segments (by a
 demographic, a cluster, or time), recompute global feature importance within
 each, and ask whether the ranking stays stable. We report **cross-segment rank stability**
 (the correlation of importance rankings between segments) and the **top-k flip
-rate** (how often a segment's top features differ from the reference). If the
-story flips between segments, the explanation is an artifact of one slice, not a
-property of the model. This is a heterogeneity check, not a direct test of
+rate** (how often a segment's top features differ from the reference). A change
+between segments may faithfully reflect different model behavior across groups;
+it is not by itself evidence of explanation failure. This is a heterogeneity check, not a direct test of
 source-to-target distribution shift; drift evaluation needs separate source and
 deployment samples.
 
@@ -220,8 +226,8 @@ A trust battery — run these before you trust any post-hoc explanation:
 |---|---|---|
 | Faithful? | removal-effect correlation, comprehensiveness | corr high; ratio ≫ 1 |
 | Reproducible? | run-to-run rank/sign/top-k stability | corr ≈ 1 |
-| Internally consistent? | SHAP vs LIME agreement (same scale) | rank corr high |
-| Consistent across observed groups? | cross-segment stability, top-k flip rate | stable, low flip |
+| How do methods differ? | SHAP vs LIME agreement (same scale) | differences interpreted in context |
+| How do observed groups differ? | cross-segment stability, top-k flip rate | heterogeneity examined in context |
 
 The checklist has one principle behind it: **measure, don't eyeball.** Stop
 asking whether an explanation *looks* right and start asking whether it survives
@@ -246,7 +252,7 @@ explanations are out of scope for now. Its subgroup checks do not measure
 deployment drift. The report thresholds are *documented defaults, not calibrated
 claims*; they should be overridden using domain evidence. And the deepest caveat
 of all: these metrics
-are **necessary but not sufficient**. No single number — and no battery of
+are **diagnostics, not universal requirements for correctness**. No single number — and no battery of
 numbers — certifies an explanation. Explainability is not a badge you print; it
 is a property of the model, the data, and the audience together. The best these
 checks can do is turn "I trust this because it looks nice" into "I trust this

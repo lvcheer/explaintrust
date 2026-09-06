@@ -4,6 +4,11 @@ An explorable (interactive) article built with Quarto. It is the *public-facing*
 half of the explaintrust project. The library and experiment outputs are the
 reproducible technical artifacts; neither is peer reviewed yet.
 
+**Pending numerical refresh (2026-09-05).** Figure generation now supplies the
+same full background to SHAP and LIME and records SHAP context. Existing figures,
+`conversion.json`, and article numbers remain snapshots of the earlier protocol.
+Regenerate them and reconcile the prose before publishing the updated method.
+
 ## One-time setup
 
 1. Install Quarto: https://quarto.org/docs/get-started/

@@ -2,9 +2,9 @@
 
 Different explanation methods answer subtly different questions and make
 different assumptions, so they frequently *disagree* — sometimes ranking
-features in opposite orders or even flipping signs. When two reasonable
-methods disagree about a prediction, neither should be trusted at face value
-(Krishna et al., "The Disagreement Problem in Explainable ML", CACM 2024).
+features in opposite orders or even flipping signs (Krishna et al., "The
+Disagreement Problem in Explainable ML", CACM 2024). These differences need
+interpretation; they do not by themselves show that either method failed.
 
 This module quantifies that disagreement point-wise.
 """
@@ -42,6 +42,10 @@ def explainer_disagreement(attr_a: np.ndarray, attr_b: np.ndarray, top_k: int = 
                                     the top-k features (lower better)
         "per_feature_gap"         — |attr_a − attr_b| normalized by that
                                     feature's own scale (vector)
+        "n_features"              — feature count, for report applicability
+
+    Top-k rank correlation is NaN for k=1. Top-k overlap is NaN when
+    k covers all features, since the identical sets provide no evidence.
     """
     a = np.asarray(attr_a, dtype=float)
     b = np.asarray(attr_b, dtype=float)
@@ -62,13 +66,13 @@ def explainer_disagreement(attr_a: np.ndarray, attr_b: np.ndarray, top_k: int = 
         raise ValueError("top_k must be at least 1")
     top_a = set(np.argsort(np.abs(a))[::-1][:k])
     top_b = set(np.argsort(np.abs(b))[::-1][:k])
-    topk_overlap = len(top_a & top_b) / k
+    topk_overlap = len(top_a & top_b) / k if k < len(a) else float("nan")
 
     # Top-k rank correlation: rank agreement on the features that matter,
     # robust to the number of noise features (full-d rank corr degrades with d).
     combined = np.abs(a) + np.abs(b)
     top_idx = np.argsort(combined)[::-1][:k]
-    ck = stats.spearmanr(np.abs(a[top_idx]), np.abs(b[top_idx])).correlation
+    ck = stats.spearmanr(np.abs(a[top_idx]), np.abs(b[top_idx])).correlation if k > 1 else float("nan")
     topk_rank_corr = float(ck) if ck is not None else float("nan")
 
     # Per-feature *relative* gap: how much the two explainers disagree on each
@@ -88,4 +92,5 @@ def explainer_disagreement(attr_a: np.ndarray, attr_b: np.ndarray, top_k: int = 
         "topk_overlap": topk_overlap,
         "magnitude_disagreement": magnitude_disagreement,
         "per_feature_gap": relative_gap,
+        "n_features": len(a),
     }

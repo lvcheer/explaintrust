@@ -155,9 +155,11 @@ def comprehensiveness_ratio(
     medians and measure the prediction change; compare against the mean change
     from removing ``top_k`` *random* features. A value > 1 means the features
     the explanation ranks highest genuinely move the model more than an
-    arbitrary set would — i.e. the attribution is not just noise.
+    random sets in this sample. This point estimate is not a significance test.
 
     Valid for SHAP and other contribution attributions.
+    Returns NaN when ``top_k >= d``: both selections remove every feature,
+    so the comparison is not applicable. Choose ``1 <= top_k < d`` to compare.
     """
     rng = np.random.default_rng(seed)
     x = np.asarray(x, dtype=float)
@@ -166,7 +168,8 @@ def comprehensiveness_ratio(
     d = len(x)
     if top_k < 1:
         raise ValueError("top_k must be at least 1")
-    top_k = min(top_k, d)
+    if top_k >= d:
+        return float("nan")
     base = float(model(x[None, :])[0])
 
     top_idx = np.argsort(np.abs(attr))[::-1][:top_k]

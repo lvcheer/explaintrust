@@ -52,10 +52,13 @@ def main() -> None:
     X_explain = X_test[:n_explain]
 
     print("computing SHAP (TreeExplainer) ...")
-    shap_attr = shap_attributions(model, X_explain, method="tree")
+    shap_attr, shap_context = shap_attributions(
+        model, X_explain, X_background=X_bg, method="tree", return_context=True,
+    )
     print("computing LIME (tabular) ...")
+    lime_samples = 2000
     lime_attr = lime_attributions(
-        model, X_explain, X_bg, feature_names=names, num_samples=2000, seed=0
+        model, X_explain, X_bg, feature_names=names, num_samples=lime_samples, seed=0
     )
 
     # LIME weights are slopes; convert to SHAP-comparable contribution units
@@ -82,7 +85,7 @@ def main() -> None:
 
     # --- sensitivity (expensive: re-explains each perturbation) ------------
     def tree_explainer_single(x):
-        return shap_attributions(model, x.reshape(1, -1), method="tree")[0]
+        return shap_attributions(model, x.reshape(1, -1), X_background=X_bg, method="tree")[0]
 
     sens = max_sensitivity(tree_explainer_single, X_explain[0], X_bg, n_perturbations=15, seed=0)
     print(f"max sensitivity (instance 0, lower better): {sens:.3f}\n")
@@ -90,7 +93,7 @@ def main() -> None:
     # --- run-to-run stability (stochastic explainer: LIME) ----------------
     def lime_explainer_seeded(seed: int):
         attr = lime_attributions(
-            model, X_explain[:1], X_bg, feature_names=names, num_samples=1000, seed=seed
+            model, X_explain[:1], X_bg, feature_names=names, num_samples=lime_samples, seed=seed
         )
         return to_contribution_scale(attr, X_explain[:1], X_bg)[0]
 
@@ -128,7 +131,7 @@ def main() -> None:
     # --- subgroup consistency inside a drifted test set --------------------
     X_shift, y_shift, _ = make_collinear_dataset(n=400, seed=7)
     X_shift, _, _ = shift_distribution(X_shift, y_shift, shift="x1_drift", seed=1)
-    attr_shift = shap_attributions(model, X_shift, method="tree")
+    attr_shift = shap_attributions(model, X_shift, X_background=X_bg, method="tree")
 
     segments = np.digitize(X_shift[:, 1], np.quantile(X_shift[:, 1], [0.33, 0.66]))
     distribution = cross_segment_stability(X_shift, segments, attr_shift, top_k=3)
@@ -148,6 +151,7 @@ def main() -> None:
         distribution=distribution,
         top_k=3,
     )
+    report.context["shap"] = shap_context
     print("=" * 70)
     print(f"TRUST VERDICT: {report.overall}")
     print(report.overall_reason)

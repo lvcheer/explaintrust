@@ -6,6 +6,10 @@ scientific claims — they are labeled as such, and every verdict carries a
 plain-English reason so the user can override the thresholds with their own
 domain knowledge.
 
+Method disagreement and subgroup heterogeneity are descriptive diagnostics,
+not quality scores. They are displayed but never determine the overall verdict;
+DEFAULT_THRESHOLDS contains only the six scored checks.
+
 A first-pass calibration study lives in ``experiments/`` (see
 ``experiments/calibrate_thresholds.py`` and its README). On held-out synthetic
 seeds, removal-effect correlation, infidelity, and max-sensitivity separate
@@ -31,12 +35,11 @@ DEFAULT_THRESHOLDS: dict[str, tuple[float, float]] = {
     "sensitivity": (0.5, 2.0),
     "stability_rank": (0.9, 0.7),
     "stability_sign": (0.9, 0.7),
-    "disagreement_sign": (0.2, 0.5),
-    "disagreement_rank": (0.7, 0.4),
-    "disagreement_topk": (0.66, 0.33),
-    "disagreement_magnitude": (1.0, 1.5),
-    "dist_rank": (0.7, 0.4),
-    "dist_flip": (0.34, 0.67),
+}
+
+_DESCRIPTIVE_KEYS = {
+    "disagreement_sign", "disagreement_rank", "disagreement_topk",
+    "disagreement_magnitude", "dist_rank", "dist_flip",
 }
 
 _THRESHOLD_DIRECTIONS = {
@@ -46,24 +49,23 @@ _THRESHOLD_DIRECTIONS = {
     "sensitivity": "lower",
     "stability_rank": "higher",
     "stability_sign": "higher",
-    "disagreement_sign": "lower",
-    "disagreement_rank": "higher",
-    "disagreement_topk": "higher",
-    "disagreement_magnitude": "lower",
-    "dist_rank": "higher",
-    "dist_flip": "lower",
 }
 
 
 @dataclass
 class MetricResult:
-    """One scored metric in the report."""
+    """One scored check or descriptive diagnostic in the report."""
 
     name: str
     value: float
-    direction: str  # "lower" or "higher"
-    verdict: str  # "good" | "warn" | "bad" | "info"
+    direction: str  # "lower", "higher", or "descriptive" (no quality ordering)
+    verdict: str  # "good" | "warn" | "bad" | "info" | "not_applicable" | "descriptive"
     explanation: str
+    role: str = "scored"  # "scored" or "descriptive"
+
+    @property
+    def included_in_overall(self) -> bool:
+        return self.role == "scored" and self.verdict != "not_applicable"
 
 
 @dataclass
@@ -83,6 +85,8 @@ class TrustReport:
                 "value": round(m.value, 4) if isinstance(m.value, (int, float)) else m.value,
                 "direction": m.direction,
                 "verdict": m.verdict,
+                "role": m.role,
+                "included_in_overall": m.included_in_overall,
                 "interpretation": m.explanation,
             }
             for m in self.metric_results
@@ -103,6 +107,8 @@ class TrustReport:
                     "value": m.value if np.isfinite(m.value) else None,
                     "direction": m.direction,
                     "verdict": m.verdict,
+                    "role": m.role,
+                    "included_in_overall": m.included_in_overall,
                     "explanation": m.explanation,
                 }
                 for m in self.metric_results
@@ -150,6 +156,7 @@ def build_trust_report(
     distribution: Optional[dict] = None,
     top_k: int = 3,
     thresholds: Optional[dict[str, tuple[float, float]]] = None,
+    n_features: Optional[int] = None,
 ) -> TrustReport:
     """Turn raw metric values into a ``TrustReport``.
 
@@ -162,6 +169,9 @@ def build_trust_report(
         (higher better, > 1 means top features really matter).
     lime_infidelity : float
         Mean infidelity for LIME's local linear surrogate (lower better).
+        Positive infinity denotes a failed check, as returned by ``infidelity``
+        when a nonzero surrogate error has a zero-change normalization baseline.
+        Other non-finite metric values are treated as unavailable.
     sensitivity_value : float or None
         Max-sensitivity, or None if not computed (expensive).
     stability : dict
@@ -173,8 +183,45 @@ def build_trust_report(
     thresholds : dict or None
         Optional overrides for entries in ``DEFAULT_THRESHOLDS``. Each value is
         a ``(good, warn)`` pair in the metric's declared direction.
+        Only faithfulness, sensitivity and run-to-run stability are scored.
+        Overrides for descriptive method/subgroup diagnostics are rejected.
+    n_features : int or None
+        Feature count used to identify comparisons that are not applicable.
+        Inferred from metric dictionaries when available. Pass it explicitly
+        if aggregation drops this metadata. Without a known count, NaN remains
+        unavailable evidence rather than being assumed not applicable.
+
+    Notes
+    -----
+    Comparisons selecting every feature and rank correlations with fewer than
+    two features are marked ``not_applicable`` and excluded from scoring.
+    Their values are NaN (null in JSON); they are listed in the overall reason.
+    Method disagreement and subgroup heterogeneity are descriptive: their
+    magnitudes, agreement, and missing values do not determine the overall
+    verdict. They remain visible with an explicit role and interpretation.
     """
+    if (isinstance(top_k, (bool, np.bool_))
+            or not isinstance(top_k, (int, np.integer)) or top_k < 1):
+        raise ValueError("top_k must be a positive integer")
+    dimensions = [n_features] if n_features is not None else []
+    for metric_data in (stability, disagreement, distribution or {}):
+        if "n_features" in metric_data:
+            dimensions.append(metric_data["n_features"])
+    for count in dimensions:
+        if (isinstance(count, (bool, np.bool_))
+                or not isinstance(count, (int, np.integer)) or count < 1):
+            raise ValueError("n_features must be a positive integer")
+    if len(set(dimensions)) > 1:
+        raise ValueError("n_features conflicts with the metric dictionaries")
+    n_features = int(dimensions[0]) if dimensions else None
+    top_k = int(min(top_k, n_features) if n_features is not None else top_k)
+
     overrides = thresholds or {}
+    descriptive_overrides = set(overrides) & _DESCRIPTIVE_KEYS
+    if descriptive_overrides:
+        raise ValueError(
+            f"thresholds cannot score descriptive diagnostics: {sorted(descriptive_overrides)}"
+        )
     unknown = set(overrides) - set(DEFAULT_THRESHOLDS)
     if unknown:
         raise ValueError(f"unknown threshold keys: {sorted(unknown)}")
@@ -198,6 +245,8 @@ def build_trust_report(
             )
 
     def score(key: str, value: float, direction: str) -> str:
+        if key == "lime_infidelity" and np.isposinf(value):
+            return "bad"
         good, warn = active_thresholds[key]
         return _verdict(key, value, direction, good, warn)
 
@@ -218,7 +267,7 @@ def build_trust_report(
     # Comprehensiveness is a qualitative "not noise" gate, not a graded score:
     # its absolute size saturates and is not comparable across datasets, but
     # "> 1" (top-k removal beats random removal) is a robust yes/no signal.
-    if np.isnan(comprehensiveness):
+    if not np.isfinite(comprehensiveness):
         comp_verdict = "info"
     else:
         comp_verdict = (
@@ -313,41 +362,47 @@ def build_trust_report(
         MetricResult(
             name="SHAP vs LIME sign disagreement",
             value=sign_dis,
-            direction="lower",
-            verdict=score("disagreement_sign", sign_dis, "lower"),
+            direction="descriptive",
+            verdict="descriptive" if np.isfinite(sign_dis) else "info",
+            role="descriptive",
             explanation="Fraction of features whose sign the two explainers "
-                        "disagree on. Low = the two stories agree on direction.",
+                        "disagree on. Larger values mean more directional differences, "
+                        "not proof that either explanation is wrong.",
         )
     )
     results.append(
         MetricResult(
             name=f"SHAP vs LIME rank agreement (top-{top_k})",
             value=rank_agree,
-            direction="higher",
-            verdict=score("disagreement_rank", rank_agree, "higher"),
+            direction="descriptive",
+            verdict="descriptive" if np.isfinite(rank_agree) else "info",
+            role="descriptive",
             explanation="Correlation between SHAP and LIME rankings over the top-k "
-                        "features (robust to the number of noise features).",
+                        "features. Higher values mean more similar rankings; agreement "
+                        "does not establish correctness and differences require interpretation.",
         )
     )
     results.append(
         MetricResult(
             name=f"SHAP vs LIME top-{top_k} overlap",
             value=top_overlap,
-            direction="higher",
-            verdict=score("disagreement_topk", top_overlap, "higher"),
-            explanation="Overlap of the most important features named by each.",
+            direction="descriptive",
+            verdict="descriptive" if np.isfinite(top_overlap) else "info",
+            role="descriptive",
+            explanation="Overlap of the most important features named by each method. "
+                        "Higher values mean more shared features, not greater explanation quality.",
         )
     )
     results.append(
         MetricResult(
             name=f"SHAP vs LIME magnitude disagreement (top-{top_k})",
             value=magnitude_dis,
-            direction="lower",
-            verdict=score("disagreement_magnitude", magnitude_dis, "lower"),
+            direction="descriptive",
+            verdict="descriptive" if np.isfinite(magnitude_dis) else "info",
+            role="descriptive",
             explanation="Mean per-feature relative |SHAP − LIME| gap over the most "
-                        "important features (0 = agree, 2 = opposite). Catches how much "
-                        "the two explainers disagree on the *size* of each important "
-                        "feature's effect — something rank/sign/overlap agreement miss.",
+                        "important features (0 = agreement, about 2 = maximal relative gap). "
+                        "This describes attribution differences; it is not a validated trust boundary.",
         )
     )
 
@@ -359,38 +414,89 @@ def build_trust_report(
             MetricResult(
                 name="Cross-segment rank stability",
                 value=dist_corr,
-                direction="higher",
-                verdict=score("dist_rank", dist_corr, "higher"),
+                direction="descriptive",
+                verdict="descriptive" if np.isfinite(dist_corr) else "info",
+                role="descriptive",
                 explanation="Consistency of the global feature-importance ranking "
-                            "across selected subpopulations. High = little detected "
-                            "subgroup heterogeneity.",
+                            "across selected subpopulations. Lower values indicate "
+                            "heterogeneity, which may reflect real differences in model behavior.",
             )
         )
         results.append(
             MetricResult(
                 name=f"Top-{top_k} flip rate across segments",
                 value=flip,
-                direction="lower",
-                verdict=score("dist_flip", flip, "lower"),
+                direction="descriptive",
+                verdict="descriptive" if np.isfinite(flip) else "info",
+                role="descriptive",
                 explanation="Fraction of subpopulations whose top features differ "
-                            "from the reference. Low = stable across slices.",
+                            "from the reference. Differences require task-specific interpretation; "
+                            "they do not by themselves imply an unreliable explanation.",
             )
         )
 
+    inapplicable = {}
+    if top_k == 1:
+        rank_reason = "A rank correlation requires at least two selected features."
+        inapplicable[f"Run-to-run rank stability (top-{top_k})"] = rank_reason
+        inapplicable[f"SHAP vs LIME rank agreement (top-{top_k})"] = rank_reason
+    if n_features is not None and top_k == n_features:
+        inapplicable["SHAP comprehensiveness (top-k vs random)"] = (
+            "Top-k and random-k both remove every feature; there is no comparison."
+        )
+        inapplicable[f"SHAP vs LIME top-{top_k} overlap"] = (
+            "Both sets contain every feature, so overlap is guaranteed."
+        )
+        inapplicable[f"Top-{top_k} flip rate across segments"] = (
+            "Every segment selects all features, so a set change is impossible."
+        )
+    if n_features == 1:
+        inapplicable["SHAP removal-effect correlation"] = "A correlation requires at least two features."
+        inapplicable["Cross-segment rank stability"] = "A rank correlation requires at least two features."
+    for result in results:
+        if result.name in inapplicable:
+            result.value = float("nan")
+            result.verdict = "not_applicable"
+            result.explanation = "Not applicable: " + inapplicable[result.name]
+
+    # Preserve the reason a non-finite value cannot be interpreted, including
+    # in JSON where NaN and infinity must be serialized as null.
+    for result in results:
+        if np.isfinite(result.value):
+            continue
+        if result.verdict == "bad" and np.isposinf(result.value):
+            result.explanation = (
+                "Failed: normalized infidelity is infinite (+inf); the surrogate "
+                "error cannot be bounded relative to the model-output change. "
+                "This is a failed check, not missing evidence."
+            )
+        elif result.verdict == "info":
+            result.explanation = (
+                "Unavailable: this check was not computed or returned a non-finite "
+                "value without a defined interpretation. It provides no passing evidence. "
+                + result.explanation
+            )
+
     # --- overall verdict ----------------------------------------------------
-    bad = [r for r in results if r.verdict == "bad"]
-    warn = [r for r in results if r.verdict == "warn"]
-    info = [r for r in results if r.verdict == "info"]
+    scored = [r for r in results if r.included_in_overall]
+    bad = [r for r in scored if r.verdict == "bad"]
+    warn = [r for r in scored if r.verdict == "warn"]
+    info = [r for r in scored if r.verdict == "info"]
     if info:
-        overall = "INSUFFICIENT EVIDENCE — some checks could not be computed"
+        overall = (
+            "INSUFFICIENT EVIDENCE — failed checks also detected"
+            if bad else "INSUFFICIENT EVIDENCE — some checks could not be computed"
+        )
         reason = (
-            f"Unavailable: {', '.join(r.name for r in info)}. "
+            (f"Failed: {', '.join(r.name for r in bad)}. " if bad else "")
+            + (f"Warn: {', '.join(r.name for r in warn)}. " if warn else "")
+            + f"Unavailable: {', '.join(r.name for r in info)}. "
             "Resolve the missing checks before drawing an overall conclusion."
         )
     elif len(bad) >= 2:
-        overall = "UNRELIABLE — explanations disagree or fail faithfulness checks"
+        overall = "CHECKS FAILED — multiple evaluation thresholds exceeded"
         reason = f"{len(bad)} metrics are in the red ({', '.join(r.name for r in bad)}). " \
-                 "Do not make decisions from these explanations without deeper analysis."
+                 "Investigate these failures under the recorded evaluation setup; thresholds are configurable diagnostics."
     elif bad or warn:
         overall = "MIXED — investigate before trusting"
         reason = (
@@ -399,17 +505,36 @@ def build_trust_report(
             + " The explanation has weak spots; verify the flagged features."
         )
     else:
-        overall = "NO ISSUES DETECTED — configured checks passed"
+        overall = "NO ISSUES DETECTED — scored checks passed"
         reason = (
-            "No failure was detected by the configured checks. This is supporting "
+            "No failure was detected by the applicable scored checks. This is supporting "
             "evidence, not a certificate that the explanation is correct."
         )
+
+    skipped = [r.name for r in results if r.verdict == "not_applicable"]
+    if skipped:
+        reason += f" Not applicable (excluded from scoring): {', '.join(skipped)}."
+    reason += (
+        " Descriptive method/subgroup diagnostics are displayed separately and "
+        "excluded from this conclusion; interpret their values in context."
+    )
+    missing_descriptive = [r.name for r in results if r.role == "descriptive" and r.verdict == "info"]
+    if missing_descriptive:
+        reason += f" Descriptive diagnostics unavailable: {', '.join(missing_descriptive)}."
 
     return TrustReport(
         metric_results=results,
         overall=overall,
         overall_reason=reason,
-        context={"thresholds": active_thresholds, "top_k": top_k},
+        context={
+            "thresholds": active_thresholds, "top_k": top_k, "n_features": n_features,
+            "decision_policy": {
+                "id": "diagnostic-separation-v1",
+                "scored_families": ["faithfulness", "sensitivity", "run-to-run stability"],
+                "descriptive_families": ["method disagreement", "subgroup heterogeneity"],
+                "missing_descriptive_affects_overall": False,
+            },
+        },
     )
 
 

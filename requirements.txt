@@ -8,3 +8,4 @@ streamlit>=1.45
 plotly>=5.0
 matplotlib>=3.6
 tqdm>=4.0
+xgboost>=2,<3

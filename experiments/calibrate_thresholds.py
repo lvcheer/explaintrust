@@ -148,7 +148,7 @@ def faithfulness():
         model = _rf(seed).fit(Xtr, ytr)
         pred = scalar_predictor(model)
         bg, Xe = Xtr[:BG], Xte[:N_EXPLAIN]
-        A = shap_attributions(model, Xe, method="tree")
+        A = shap_attributions(model, Xe, X_background=bg, method="tree")
         rng = np.random.default_rng(seed)
         for i in range(N_EXPLAIN):
             removal_g.append(removal_effect_correlation(pred, Xe[i], A[i], bg))
@@ -195,7 +195,7 @@ def sensitivity():
         bg, x0 = Xtr[:BG], Xte[0]
 
         def tree(x):
-            return shap_attributions(model, x.reshape(1, -1), method="tree")[0]
+            return shap_attributions(model, x.reshape(1, -1), X_background=bg, method="tree")[0]
 
         def lime_smooth(x):
             return lime_attributions(
@@ -252,7 +252,7 @@ def disagreement():
             model = _rf(seed).fit(Xtr, ytr)
             bg = Xtr[:BG]
             Xe = Xte[:N_EXPLAIN]
-            S = shap_attributions(model, Xe, method="tree")
+            S = shap_attributions(model, Xe, X_background=bg, method="tree")
             L = lime_attributions(model, Xe, bg, feature_names=names, num_samples=1000, seed=seed)
             C = to_contribution_scale(L, Xe, bg)
             for i in range(N_EXPLAIN):
@@ -289,12 +289,12 @@ def distribution():
         n_half = len(Xte) // 2
         idx = np.random.default_rng(seed).permutation(len(Xte))
         seg_g = np.concatenate([np.zeros(n_half), np.ones(len(Xte) - n_half)]).astype(int)
-        A_g = shap_attributions(model, Xte[idx], method="tree")
+        A_g = shap_attributions(model, Xte[idx], X_background=Xtr[:BG], method="tree")
         g = cross_segment_stability(Xte[idx], seg_g, A_g, top_k=TOPK)
 
         # bad: split by x0 -> x1 matters only on the x0>0 side, so its rank flips
         seg_b = (Xte[:, 0] > np.median(Xte[:, 0])).astype(int)
-        A_b = shap_attributions(model, Xte, method="tree")
+        A_b = shap_attributions(model, Xte, X_background=Xtr[:BG], method="tree")
         b = cross_segment_stability(Xte, seg_b, A_b, top_k=TOPK)
 
         rank_g.append(g["rank_corr"])
@@ -321,6 +321,12 @@ def main() -> None:
         ),
         "seeds": list(SEEDS),
         "n": N,
+        "explanation_reference": {
+            "tree_perturbation": "interventional",
+            "background": "first BG training rows, shared with LIME where compared",
+            "background_rows": BG,
+            "implicit_subsampling": False,
+        },
         "models": {
             "faithfulness": "RandomForestClassifier(n_estimators=60, max_depth=4) on clean data",
             "lime_infidelity": "LogisticRegression on clean data",

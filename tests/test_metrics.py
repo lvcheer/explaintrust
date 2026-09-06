@@ -83,17 +83,17 @@ def test_comprehensiveness_detects_predictive_feature():
     assert ratio > 1.5, f"comprehensiveness should exceed random, got {ratio}"
 
 
-def test_top_k_is_capped_for_low_dimensional_inputs():
+def test_full_feature_top_k_is_not_informative_for_low_dimensional_inputs():
     X, y = _linear_data()
     X = X[:, :2]
     model = LinearRegression().fit(X, y)
     pred = scalar_predictor(model)
     ratio = comprehensiveness_ratio(pred, X[0], model.coef_, X[:100], top_k=3, seed=0)
-    assert np.isfinite(ratio)
+    assert np.isnan(ratio)
 
     attrs = np.tile(np.array([1.0, 0.5]), (20, 1))
     result = cross_segment_stability(X[:20], np.repeat([0, 1], 10), attrs, top_k=3)
-    assert result["topk_flip_rate"] == 0.0
+    assert np.isnan(result["topk_flip_rate"])
 
 
 def test_lime_sign_matches_true_coefficients():

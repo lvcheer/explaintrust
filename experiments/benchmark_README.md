@@ -1,5 +1,114 @@
 # Real-data benchmark: where the metrics actually land
 
+**Protocol update (2026-09-05).** New runs use the full shared background for
+SHAP and LIME and save per-run SHAP context. The checked-in JSON and tables below
+predate this change: TreeSHAP used training-path counts, while LinearSHAP could
+subsample the 200-row reference internally. These historical numbers do not
+validate the updated pipeline and must be regenerated after the remaining
+correctness and benchmark-protocol fixes.
+
+New benchmark output also marks method/subgroup diagnostics as `descriptive`,
+with no active quality thresholds. The historical verdict column below reflects
+the old report policy and is not the current classification of these diagnostics.
+
+**Split/preprocessing update (2026-09-06).** New runs keep Adult's official
+training/test files separate. Its holdout is fixed across seeds; seeds still
+vary the model and explanation sampling. Diabetes uses `GroupShuffleSplit` to
+hold out 30% of unique patients per seed (the row proportion may differ), with
+no patient shared between training and test. This is a patient holdout, not a
+temporal validation protocol.
+
+Numeric medians, means, standard deviations and categorical vocabularies are
+fitted only on training rows. All-missing training numeric columns use zero;
+constant training columns retain unit scale;
+unseen test categories map to an all-zero block under the existing drop-first
+encoding convention. Models and explanation backgrounds use training rows;
+instance and subgroup diagnostics use test rows. All models share the same
+prepared split for a given dataset/seed. Each exported run context records the
+protocol, row counts, encoded dimension, split-index hashes and (for Diabetes)
+patient counts and overlap. Top-level dataset dimensions now describe raw
+features; encoded dimensions can vary between patient splits.
+
+The tables and checked-in JSON below used pooled preprocessing and random row
+splits, including recombination of Adult's official files. They remain historical
+results and cannot be used as evidence for the corrected protocol. A full rerun
+and comparison are still required before updating empirical conclusions.
+
+**Raw-result export update (2026-09-06).** New JSON uses `schema_version: 3`
+and retains the existing `metrics` summary and `run_contexts`, plus:
+
+- `runs`: one record per dataset/model/seed, with unrounded aggregate metrics,
+  `metric_counts`, feature names, background positions within the training
+  partition, and the split/SHAP context.
+- `runs[].samples`: positions within the test partition, perturbation seeds,
+  per-instance metric values, SHAP values, LIME coefficients and contributions.
+  Sensitivity and stability now cover every explained instance, with the same
+  per-instance budget. Each sensitivity estimate uses outer seed + position within the sampled batch.
+- `runs[].stability_runs`: a list of records, one per explained instance, each
+  containing five LIME contribution vectors and their actual seeds (outer seed
+  through outer seed + 4). LIME repeats the full explanation batch at the same
+  budget and reuses the displayed contribution matrix as its first repeat.
+  `evaluation_counts` records actual sample coverage and LIME calls per run.
+- `runs[].subgroups`: sampled test positions, segmentation feature and cutpoints,
+  memberships, group sizes and mean absolute attribution vectors. The first
+  sorted group is the flip-rate reference. These are group-level diagnostics,
+  not additional independent per-instance measurements.
+- `budget` and `aggregation`: requested sample sizes, perturbation budgets,
+  evaluation scope and aggregation rules.
+
+Each raw metric is `{value, status}`. Finite values retain full precision;
+`nan`, `positive_infinity`, `negative_infinity` and `not_computed` retain their
+status with a JSON `null` value. The file is strict JSON, without NaN/Infinity
+literals. Within-run means omit NaN but preserve infinities, so an infinite
+infidelity failure is no longer silently removed. Per-metric counts separately
+record total, finite, NaN and each infinity. Sample counts for sensitivity and
+stability equal the actual number of explained samples; subgroup counts refer
+to one aggregate diagnostic.
+
+**Coverage update (2026-09-06).** Schema 2 evaluated sensitivity and stability
+only for the first instance; schema 3 averages their per-instance values over
+all explained instances. This changes the meaning of run aggregates and the
+shape of `stability_runs` (single object to list). Each instance still uses six
+sensitivity perturbations and five LIME repeats; five full-batch LIME calls
+include the displayed explanation, with no extra call for its first repeat.
+The default explanation sample count remains four: this fixes uneven coverage
+but does not establish dataset-wide representativeness. Historical results
+must be rerun before comparison under the new protocol.
+
+**Sampling update (2026-09-06).** Explained instances are now uniformly sampled
+without replacement from the test partition using the outer seed, instead of
+always taking its first rows. Sampling occurs once per dataset/seed so all model
+families receive the same instances; a dedicated RNG keeps the draw independent
+of background size and model iteration. Run `sampling` metadata records the
+method, seed, requested/available/actual counts and selected test positions.
+`sample_position` is the row's position within the explanation batch;
+`test_position` identifies its position in the full test partition. Both sample
+metrics and LIME repeat records carry this mapping. Perturbation seeds use the
+batch position, while subgroup positions continue to refer to the full test set.
+
+Configure the sample count without editing source:
+
+```bash
+python3 experiments/benchmark_real_data.py --n-explain 25
+```
+
+The default remains four. Counts must be positive integers and are validated
+before data loading; requests larger than the test partition use all its rows
+once, without duplication. Python callers can use `main(n_explain=25)`.
+Sampling units are test rows (encounters for Diabetes), not unique patients;
+multiple encounters from a held-out patient may be sampled. Random selection
+removes fixed-prefix selection but does not guarantee class balance or establish
+patient-level independence. Historical fixed-prefix results remain pending a
+rerun under this recorded sampling protocol.
+
+Summary P10/median/P90 describe **finite run aggregates**, with total/finite and
+non-finite run counts both pooled and per dataset. They are not confidence
+intervals; runs sharing patients, holdouts or model fits must not be treated as
+independent samples. Summaries can be recomputed from `runs[].metrics`, and run
+means/counts from the per-instance and subgroup records. Split hashes plus the
+protocol/seed identify the partition; row positions refer to that partition and
+require the same source data/order. Patient identifiers are not exported.
+
 A companion to the synthetic calibration. It runs the full trust-metric battery
 on **two real UCI datasets** — Adult Income (48k × 84 features) and Diabetes
 130-US (102k × 62 features) — across three model families (Random Forest,
