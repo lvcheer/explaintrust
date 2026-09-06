@@ -2,6 +2,8 @@
 
 中文说明见[下方](#中文说明) · A Chinese version of this README is [below](#中文说明).
 
+**[Live demo · 在线演示](https://lvcheer-explaintrust-appstreamlit-app-x7k48h.streamlit.app/)** — Try the five-step analysis workflow in your browser. Switch between English and Chinese in the sidebar.
+
 > Post-hoc explanations are easy to produce and easy to over-trust. **explaintrust** asks the question most XAI tooling ignores: *"SHAP/LIME gave me a feature attribution — but can I trust it?"*
 
 It checks whether explanations are **faithful and stable**, and separately
@@ -215,6 +217,8 @@ report means that no configured check failed; it is not a certificate of truth.
 ---
 
 ## 中文说明
+
+**[打开在线演示](https://lvcheer-explaintrust-appstreamlit-app-x7k48h.streamlit.app/)**：无需本地安装，即可体验数据选择／上传、数据划分、模型训练、预测解释和解释质量分析。侧边栏支持中英文切换。
 
 > 事后解释（post-hoc explanation）很容易生成，也很容易被过度信任。**explaintrust** 追问的是大多数 XAI 工具忽略的问题：*“SHAP/LIME 给了我一组特征归因——但我能相信它吗？”*
 
