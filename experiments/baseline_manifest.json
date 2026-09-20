@@ -1,0 +1,47 @@
+{
+  "schema_version": 1,
+  "captured_on": "2026-09-20",
+  "source_commit": "02f5ee541e647940072649d11ed2d09002ee1fca",
+  "source_branch": "main",
+  "git_tag": "baseline/pre-benchmark-refresh-2026-09-20",
+  "status": "historical_pre_refresh",
+  "artifacts": [
+    {
+      "path": "README.md",
+      "sha256": "f093231f3d8f2a171504ae10c47e94528dc6d32457d3b2d7c08e46eeb39f3325"
+    },
+    {
+      "path": "experiments/README.md",
+      "sha256": "40590cfbb23e3961d1882698c712afe367eefffdd07510483a7d40db6e29d86f"
+    },
+    {
+      "path": "experiments/benchmark_README.md",
+      "sha256": "842a2a975f12e0b1964043ff0f822453bead1b0bfcdb836939ea35cbbc260530"
+    },
+    {
+      "path": "experiments/calibration.json",
+      "sha256": "077346f708d5adec30c24d8b7ebe8070b4b6046d471ebf2fb8987b563f1f6db6"
+    },
+    {
+      "path": "experiments/benchmark_results.json",
+      "sha256": "f27fb8aec0c522e179517a12fe9787e7e8131189af4190aa44a96e618bf0f071"
+    },
+    {
+      "path": "article/index.qmd",
+      "sha256": "4094e089e283df959b89248794a088d0d3a28d8d35fe2a18c42e88a2172b6baf"
+    },
+    {
+      "path": "article/figures/conversion.json",
+      "sha256": "a0e855c8d67c145b867af5779d75e8b935845be1054c5943dc69c6439fe8656b"
+    },
+    {
+      "path": "article/figures/conversion_flip.png",
+      "sha256": "4240c5dd437b368bee5f4254aeb931588796046df714fa148ad196b2623b4dd8"
+    },
+    {
+      "path": "article/figures/endpoints.png",
+      "sha256": "23af07cf3fb00dcae9a42128f5a1485b06943594e82fa686139c255c043ff377"
+    }
+  ],
+  "note": "Git history is the recoverable backup. These hashes identify the exact checked-in artifacts before the refresh; they are not evidence for the corrected protocol."
+}
