@@ -13,6 +13,9 @@ example.
 
 | Surface | Result family | Current content | Required action |
 |---|---|---|---|
+| `experiments/results/synthetic/raw_runs.json` | Refreshed synthetic calibration | Per-seed, model, scenario, condition, and observation records; created by the refreshed runner | Treat as the canonical raw source after the first reviewed run. |
+| `experiments/results/synthetic/summary.json` | Refreshed synthetic calibration | Frozen config plus derived thresholds and held-out summaries; created by the refreshed runner | Generate only from the same in-memory observations written to `raw_runs.json`. |
+| `experiments/results/synthetic/environment.json` | Refreshed synthetic calibration | Commit, dirty flag, Python/platform, runner/config digests, command, and installed packages | Keep beside the exact raw and summary outputs from that execution. |
 | `experiments/calibration.json` | Synthetic calibration | Historical thresholds, held-out medians, pass rates, and flag rates | Preserve as the pre-refresh baseline. Replace only with reviewed output from the frozen synthetic protocol, or migrate it explicitly into the new raw/summary layout. |
 | `experiments/benchmark_results.json` | Adult/Diabetes benchmark | Historical dataset/model/seed summaries from the earlier split and explanation protocol | Preserve as the pre-refresh baseline. Replace only after refreshed run records, split context, non-finite statuses, and summaries pass validation. |
 | `article/figures/conversion.json` | Article-only synthetic example | Per-feature attributions plus before/after rank-correlation and sign-disagreement values | Regenerate with `article/scripts/generate_figures.py`. Keep separate from both benchmark result families. |
@@ -62,7 +65,7 @@ numbers vary with the selected data, model, seed, and analysis budget.
 
 | Entry point | Output currently written or displayed |
 |---|---|
-| `python -m experiments.calibrate_thresholds` | Writes `experiments/calibration.json` and prints the synthetic result table. |
+| `python -m experiments.calibrate_thresholds` | Validates the frozen config; preserves historical `calibration.json`; writes `experiments/results/synthetic/{raw_runs,summary,environment}.json`; and prints the synthetic result table. |
 | `python -m experiments.benchmark_real_data --n-explain 4` | Writes `experiments/benchmark_results.json` and prints the real-data summary table. |
 | `python article/scripts/generate_figures.py` | Writes `conversion.json`, `conversion_flip.png`, and `endpoints.png`. |
 | `quarto render article` | Builds the ignored `article/_site/` delivery artifact. |

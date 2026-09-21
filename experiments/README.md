@@ -115,8 +115,12 @@ this study is the first step toward real calibration, not the final word. To
 reproduce or tweak:
 
 ```bash
-python3 experiments/calibrate_thresholds.py   # regenerates calibration.json
+python -m experiments.calibrate_thresholds
 ```
+
+The runner validates `experiments/config.json`, preserves the historical
+`calibration.json`, and writes the refreshed per-seed observations, summary,
+and environment metadata under `experiments/results/synthetic/`.
 
 ## Caveats
 

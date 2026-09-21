@@ -75,6 +75,11 @@ The experiment is a diagnostic calibration study. Only shuffled-attribution
 conditions are direct corruption controls; other nominal good/bad labels are
 stress-test assumptions.
 
+The runner must not overwrite the historical `calibration.json` during the
+refresh. It writes `raw_runs.json`, `summary.json`, and `environment.json` under
+`experiments/results/synthetic/`; the first file groups observations by seed,
+model, scenario, and condition.
+
 ## Real-data benchmark
 
 The entry point is
