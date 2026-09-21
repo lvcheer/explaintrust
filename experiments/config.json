@@ -1,6 +1,8 @@
 {
-  "schema_version": 2,
+  "schema_version": 3,
   "frozen_on": "2026-09-20",
+  "amended_on": "2026-09-21",
+  "amendment_scope": "Real-data output and historical-comparison contracts only; scientific parameters are unchanged.",
   "baseline_commit": "02f5ee541e647940072649d11ed2d09002ee1fca",
   "prediction_target": "model-dependent scalar output selected by scalar_predictor; SHAP, LIME, and perturbation metrics use the same output within each run",
   "synthetic": {
@@ -181,6 +183,54 @@
       "summary": "finite-run P10, median, and P90",
       "summary_unit": "dataset-model-seed run",
       "confidence_interval": false
+    },
+    "output_contract": {
+      "results_directory": "experiments/results/real",
+      "historical_baseline": "experiments/benchmark_results.json",
+      "preserve_historical_baseline": true,
+      "publish_only_after_complete_run": true,
+      "strict_json": true,
+      "artifacts": {
+        "raw_runs": {
+          "path": "experiments/results/real/raw_runs.json",
+          "schema_version": 1,
+          "required_top_level_fields": ["schema_version", "run_context", "n_runs", "runs"]
+        },
+        "summary": {
+          "path": "experiments/results/real/summary.json",
+          "schema_version": 1,
+          "required_top_level_fields": ["schema_version", "run_context", "frozen_config", "aggregation", "budget", "datasets", "n_runs", "seeds", "models", "metrics"]
+        },
+        "environment": {
+          "path": "experiments/results/real/environment.json",
+          "schema_version": 1,
+          "required_top_level_fields": ["schema_version", "generated_at_utc", "command", "git", "python", "platform", "config", "runner", "datasets", "packages"]
+        },
+        "change_report": {
+          "path": "experiments/results/real/change_report.md",
+          "format": "markdown",
+          "required_sections": ["baseline identity", "comparison rule", "metric comparison", "non-comparable fields", "interpretation"]
+        }
+      }
+    },
+    "historical_comparison": {
+      "baseline_path": "experiments/benchmark_results.json",
+      "baseline_sha256": "f27fb8aec0c522e179517a12fe9787e7e8131189af4190aa44a96e618bf0f071",
+      "comparison_scope": ["adult", "diabetes", "pooled"],
+      "statistic": "median",
+      "comparison_precision_decimals": 4,
+      "direction": "two_sided",
+      "relative_tolerance": 0.1,
+      "absolute_floor_default": 0.05,
+      "absolute_floor_overrides": {
+        "comprehensiveness": 1.0,
+        "sensitivity": 0.01
+      },
+      "flag_rule": "absolute_delta > max(metric_absolute_floor, relative_tolerance * abs(historical_value))",
+      "equality_rule": "within_tolerance",
+      "missing_or_nonfinite_rule": "always_flag",
+      "flag_interpretation": "material_change_requiring_technical_explanation_not_regression_failure",
+      "limitation": "The historical baseline has summary medians but no raw runs, so paired run-level comparison is not possible."
     }
   }
 }

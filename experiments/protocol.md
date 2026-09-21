@@ -1,6 +1,8 @@
 # Reproducible benchmark refresh protocol
 
-Status: frozen for the benchmark refresh started on 2026-09-20.
+Status: frozen for the benchmark refresh started on 2026-09-20. Amended on
+2026-09-21 to add the real-data output and historical-comparison contracts;
+scientific parameters were not changed.
 
 ## Purpose
 
@@ -15,11 +17,12 @@ result artifacts at that revision are recorded in `baseline_manifest.json`.
 
 ## Frozen scope
 
-The machine-readable companion to this document is `config.json` (schema 2).
+The machine-readable companion to this document is `config.json` (schema 3).
 It records the runner constants and metric defaults audited on 2026-09-20. The
-runners do not yet load that file; adding a drift check is a later engineering
-step and must not silently alter this frozen protocol. The refresh uses the code
-paths and metric definitions already present at the source revision above.
+synthetic runner loads and validates its frozen section. The real-data runner
+does not yet validate the file; adding that check is the next engineering step
+and must not silently alter this frozen protocol. The refresh uses the code paths
+and metric definitions already present at the source revision above.
 During the run:
 
 - do not add explainers, datasets, models, or metrics;
@@ -129,6 +132,37 @@ that omit NaN but preserve infinity; P10/median/P90 summarize finite
 dataset/model/seed run aggregates and are not confidence intervals.
 
 All instance-level values and run contexts must be retained.
+
+The real-data runner must preserve the historical
+`experiments/benchmark_results.json`. A completed refreshed run writes four
+artifacts under `experiments/results/real/`:
+
+| Artifact | Required content |
+|---|---|
+| `raw_runs.json` | One record per dataset/model/seed, nested sample and subgroup evidence, explicit measurement statuses, and a run-context link |
+| `summary.json` | Frozen config, aggregation and budget, dataset metadata, run counts, seeds, models, and metrics derived from the same in-memory run records |
+| `environment.json` | Generation time and command; Git commit and dirty flag; Python, platform, packages; config and runner hashes; source-data paths and verified archive hashes |
+| `change_report.md` | Baseline identity, frozen comparison rule, metric comparison, fields that cannot be compared, and technical interpretation |
+
+JSON must be strict (`NaN` and infinity literals are forbidden), while metric
+envelopes retain their finite, NaN, positive-infinity, negative-infinity, or
+not-computed status. Result artifacts are published only after all 48 runs
+complete; a partial run must not replace a previously completed bundle.
+
+Historical comparison is necessarily summary-level because the checked-in
+baseline contains no raw run values. For each metric, compare the four-decimal
+Adult, Diabetes, and pooled medians. Let `d = abs(refreshed - historical)`.
+Flag a material change only when
+
+`d > max(metric_absolute_floor, 0.10 * abs(historical))`.
+
+The default absolute floor is 0.05. Comprehensiveness uses 1.0 because it is an
+unbounded ratio; sensitivity uses 0.01 because its historical medians are zero.
+Equality is within tolerance. A missing or non-finite comparison value is
+always flagged. The rule is two-sided and was fixed before the refreshed run.
+A flag means that the change requires a technical explanation; it is not, by
+itself, a regression failure because the historical and refreshed protocols
+are intentionally different.
 
 Adult uses its official 32,561-row training file and 16,281-row test file.
 Diabetes holds out 30% of the 71,518 patient groups per seed. Numeric imputation
