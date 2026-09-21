@@ -1,8 +1,8 @@
 {
-  "schema_version": 3,
+  "schema_version": 4,
   "frozen_on": "2026-09-20",
   "amended_on": "2026-09-21",
-  "amendment_scope": "Real-data output and historical-comparison contracts only; scientific parameters are unchanged.",
+  "amendment_scope": "Real-data output, historical-comparison, and subgroup SHAP additivity-failure contracts; scientific parameters are unchanged.",
   "baseline_commit": "02f5ee541e647940072649d11ed2d09002ee1fca",
   "prediction_target": "model-dependent scalar output selected by scalar_predictor; SHAP, LIME, and perturbation metrics use the same output within each run",
   "synthetic": {
@@ -182,7 +182,18 @@
       "run_metric": "mean excluding NaN while preserving infinity",
       "summary": "finite-run P10, median, and P90",
       "summary_unit": "dataset-model-seed run",
-      "confidence_interval": false
+      "confidence_interval": false,
+      "not_computed": "excluded from numeric aggregation and counted separately"
+    },
+    "failure_handling": {
+      "subgroup_shap_additivity": {
+        "scope": "subgroup SHAP attribution batch only",
+        "affected_metrics": ["distribution_rank", "distribution_flip"],
+        "status": "not_computed",
+        "continue_other_metrics": true,
+        "check_additivity": true,
+        "drop_failing_rows": false
+      }
     },
     "output_contract": {
       "results_directory": "experiments/results/real",

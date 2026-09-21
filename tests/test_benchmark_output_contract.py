@@ -3,6 +3,7 @@ import hashlib
 import json
 from pathlib import Path
 
+import numpy as np
 import pytest
 
 from experiments import benchmark_real_data as benchmark
@@ -18,6 +19,17 @@ def test_config_drift_fails_before_dataset_loading(tmp_path):
     path = tmp_path / "config.json"
     path.write_text(json.dumps(config))
     with pytest.raises(ValueError, match="background_max_rows"):
+        benchmark._load_frozen_config(path)
+
+
+def test_failure_handling_drift_is_rejected(tmp_path):
+    config = frozen_config()
+    config["real_data"]["failure_handling"]["subgroup_shap_additivity"][
+        "check_additivity"
+    ] = False
+    path = tmp_path / "config.json"
+    path.write_text(json.dumps(config))
+    with pytest.raises(ValueError, match="check_additivity"):
         benchmark._load_frozen_config(path)
 
 
@@ -72,3 +84,45 @@ def test_source_archive_hash_mismatch_is_rejected(monkeypatch, tmp_path):
     actual = hashlib.sha256(b"not the frozen archive").hexdigest()
     with pytest.raises(ValueError, match=f"archive hash mismatch: {actual}"):
         benchmark._source_context(config)
+
+
+def test_subgroup_shap_additivity_failure_is_not_computed(monkeypatch):
+    X = np.arange(120, dtype=float).reshape(40, 3)
+
+    def fail_additivity(*args, **kwargs):
+        raise benchmark.ShapExplainerError("Additivity check failed in TreeExplainer")
+
+    monkeypatch.setattr(benchmark, "shap_attributions", fail_additivity)
+    values, evidence = benchmark._subgroup_metrics(
+        object(), X, X[:10], ["a", "b", "c"], seed=3,
+    )
+
+    assert all(np.isnan(value) for value in values.values())
+    assert len(evidence["test_positions"]) == len(X)
+    assert evidence["mean_absolute_attributions"] is None
+    assert benchmark._counts(list(evidence["metrics"].values())) == {
+        "total": 2,
+        "finite": 0,
+        "nan": 0,
+        "positive_infinity": 0,
+        "negative_infinity": 0,
+        "not_computed": 2,
+    }
+    for metric in benchmark.SUBGROUP_METRICS:
+        measurement = evidence["metrics"][metric]
+        assert measurement["value"] is None
+        assert measurement["status"] == "not_computed"
+        assert measurement["error"]["sampled_rows"] == len(X)
+        assert measurement["error"]["test_positions_field"] == "subgroups.test_positions"
+    json.dumps(benchmark._json_safe(evidence), allow_nan=False)
+
+
+def test_non_shap_subgroup_failure_is_not_suppressed(monkeypatch):
+    X = np.arange(120, dtype=float).reshape(40, 3)
+
+    def fail_unexpectedly(*args, **kwargs):
+        raise ValueError("unexpected failure")
+
+    monkeypatch.setattr(benchmark, "shap_attributions", fail_unexpectedly)
+    with pytest.raises(ValueError, match="unexpected failure"):
+        benchmark._subgroup_metrics(object(), X, X[:10], ["a", "b", "c"], seed=3)

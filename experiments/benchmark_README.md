@@ -71,12 +71,13 @@ Budget and aggregation metadata live in `summary.json`.
 
 Each raw metric is `{value, status}`. Finite values retain full precision;
 `nan`, `positive_infinity`, `negative_infinity` and `not_computed` retain their
-status with a JSON `null` value. The file is strict JSON, without NaN/Infinity
+status with a JSON `null` value. A `not_computed` subgroup value also carries
+structured error metadata. The file is strict JSON, without NaN/Infinity
 literals. Within-run means omit NaN but preserve infinities, so an infinite
 infidelity failure is no longer silently removed. Per-metric counts separately
-record total, finite, NaN and each infinity. Sample counts for sensitivity and
-stability equal the actual number of explained samples; subgroup counts refer
-to one aggregate diagnostic.
+record total, finite, NaN, each infinity, and not-computed observations. Sample
+counts for sensitivity and stability equal the actual number of explained
+samples; subgroup counts refer to one aggregate diagnostic.
 
 **Coverage update (2026-09-06).** Schema 2 evaluated sensitivity and stability
 only for the first instance; schema 3 averages their per-instance values over

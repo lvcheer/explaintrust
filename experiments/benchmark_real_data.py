@@ -34,6 +34,7 @@ from pathlib import Path
 import numpy as np
 from sklearn.ensemble import GradientBoostingClassifier, RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
+from shap.utils._exceptions import ExplainerError as ShapExplainerError
 
 from explaintrust import (
     lime_attributions,
@@ -109,6 +110,7 @@ CURRENT_DEFAULTS = {
 }
 
 METRICS = list(CURRENT_DEFAULTS.keys())
+SUBGROUP_METRICS = ("distribution_rank", "distribution_flip")
 
 
 def _sha256(path: Path) -> str:
@@ -178,8 +180,22 @@ def _load_frozen_config(path: Path | None = None):
             f"real_data.datasets: config={sorted(real['datasets'])!r}, "
             f"runner={sorted(DATA_ARCHIVES)!r}"
         )
-    if config.get("schema_version") != 3:
-        errors.append(f"schema_version: config={config.get('schema_version')!r}, runner=3")
+    failure_expected = {
+        "scope": "subgroup SHAP attribution batch only",
+        "affected_metrics": list(SUBGROUP_METRICS),
+        "status": "not_computed",
+        "continue_other_metrics": True,
+        "check_additivity": True,
+        "drop_failing_rows": False,
+    }
+    failure = real.get("failure_handling", {}).get("subgroup_shap_additivity", {})
+    errors.extend(
+        f"real_data.failure_handling.subgroup_shap_additivity.{key}: "
+        f"config={failure.get(key)!r}, runner={value!r}"
+        for key, value in failure_expected.items() if failure.get(key) != value
+    )
+    if config.get("schema_version") != 4:
+        errors.append(f"schema_version: config={config.get('schema_version')!r}, runner=4")
 
     contract = real["output_contract"]
     artifacts = contract["artifacts"]
@@ -298,6 +314,57 @@ def _segment_feature(X, quantiles=(0.33, 0.66), min_rows=5) -> int:
     return best_j
 
 
+def _subgroup_metrics(model, X_dist, X_bg, names, seed):
+    rng = np.random.default_rng(seed)
+    idx = rng.choice(len(X_dist), min(DIST_N, len(X_dist)), replace=False)
+    Xd = X_dist[idx]
+    seg_feat = _segment_feature(Xd)
+    cutpoints = np.quantile(Xd[:, seg_feat], [0.33, 0.66])
+    seg = np.digitize(Xd[:, seg_feat], cutpoints)
+    group_ids = np.unique(seg)
+    evidence = {
+        "test_positions": idx.tolist(),
+        "feature": names[seg_feat],
+        "cutpoints": cutpoints.tolist(),
+        "segment_ids": seg.tolist(),
+        "group_ids": [int(value) for value in group_ids],
+        "group_counts": [int(np.sum(seg == value)) for value in group_ids],
+    }
+
+    try:
+        attributions = shap_attributions(model, Xd, X_background=X_bg, method="auto")
+    except ShapExplainerError as exc:
+        error = {
+            "stage": "subgroup_shap_attributions",
+            "exception_type": f"{type(exc).__module__}.{type(exc).__name__}",
+            "message": str(exc),
+            "sampled_rows": len(Xd),
+            "affected_metrics": list(SUBGROUP_METRICS),
+            "test_positions_field": "subgroups.test_positions",
+        }
+        values = {metric: float("nan") for metric in SUBGROUP_METRICS}
+        evidence.update({
+            "mean_absolute_attributions": None,
+            "metrics": {
+                metric: _measurement(error=error) for metric in SUBGROUP_METRICS
+            },
+        })
+        return values, evidence
+
+    dist = cross_segment_stability(Xd, seg, attributions, top_k=TOPK)
+    values = {
+        "distribution_rank": dist["rank_corr"],
+        "distribution_flip": dist["topk_flip_rate"],
+    }
+    evidence.update({
+        "group_ids": [int(value) for value in dist["segment_ids"]],
+        "group_counts": [int(np.sum(seg == value)) for value in dist["segment_ids"]],
+        "mean_absolute_attributions": dist["importances"].tolist(),
+        "metrics": {key: _measurement(value) for key, value in values.items()},
+    })
+    return values, evidence
+
+
 def _run_metrics(model, X_explain, X_bg, names, X_dist, seed, *, test_positions=None):
     if test_positions is None:
         test_positions = np.arange(len(X_explain))
@@ -358,14 +425,9 @@ def _run_metrics(model, X_explain, X_bg, names, X_dist, seed, *, test_positions=
         ds["topk"].append(d["topk_overlap"])
         ds["mag"].append(d["magnitude_disagreement"])
 
-    rng = np.random.default_rng(seed)
-    idx = rng.choice(len(X_dist), min(DIST_N, len(X_dist)), replace=False)
-    Xd = X_dist[idx]
-    Ad = shap_attributions(model, Xd, X_background=X_bg, method="auto")
-    seg_feat = _segment_feature(Xd)
-    cutpoints = np.quantile(Xd[:, seg_feat], [0.33, 0.66])
-    seg = np.digitize(Xd[:, seg_feat], cutpoints)
-    dist = cross_segment_stability(Xd, seg, Ad, top_k=TOPK)
+    subgroup, subgroup_evidence = _subgroup_metrics(
+        model, X_dist, X_bg, names, seed,
+    )
 
     sample_values = {
         "removal_corr": removals, "comprehensiveness": comps, "infidelity": infids,
@@ -377,13 +439,21 @@ def _run_metrics(model, X_explain, X_bg, names, X_dist, seed, *, test_positions=
         "stability_rank_topk": [s["topk_rank_corr"] for s in stabilities],
         "stability_sign": [s["sign_agreement"] for s in stabilities],
     }
-    subgroup = {"distribution_rank": dist["rank_corr"],
-                "distribution_flip": dist["topk_flip_rate"]}
     values = {**sample_values, **{k: [v] for k, v in subgroup.items()}}
+    measurements = {
+        **{
+            key: [_measurement(item) for item in value]
+            for key, value in sample_values.items()
+        },
+        **{
+            key: [subgroup_evidence["metrics"][key]]
+            for key in SUBGROUP_METRICS
+        },
+    }
     result = {key: _mean(value) for key, value in values.items()}
     result.update({
         "shap_context": shap_context,
-        "metric_counts": {key: _counts(value) for key, value in values.items()},
+        "metric_counts": {key: _counts(value) for key, value in measurements.items()},
         "samples": [
             {"sample_position": i, "test_position": int(test_positions[i]), "perturbation_seed": seed + i,
              "metrics": {key: _measurement(value[i]) for key, value in sample_values.items()},
@@ -403,30 +473,42 @@ def _run_metrics(model, X_explain, X_bg, names, X_dist, seed, *, test_positions=
                               "lime_batch_calls": len(STABILITY_SEED_OFFSETS),
                               "lime_instance_explanations": len(STABILITY_SEED_OFFSETS) * n,
                               "stability_seeds": stability_seeds},
-        "subgroups": {
-            "test_positions": idx.tolist(), "feature": names[seg_feat],
-            "cutpoints": cutpoints.tolist(), "segment_ids": seg.tolist(),
-            "group_ids": [int(v) for v in dist["segment_ids"]],
-            "group_counts": [int(np.sum(seg == v)) for v in dist["segment_ids"]],
-            "mean_absolute_attributions": dist["importances"].tolist(),
-            "metrics": {key: _measurement(value) for key, value in subgroup.items()},
-        },
+        "subgroups": subgroup_evidence,
     })
     return result
 
 
-def _counts(xs):
-    values = np.asarray(xs, dtype=float)
-    return {"total": len(values), "finite": int(np.isfinite(values).sum()),
-            "nan": int(np.isnan(values).sum()),
-            "positive_infinity": int(np.isposinf(values).sum()),
-            "negative_infinity": int(np.isneginf(values).sum())}
+MEASUREMENT_STATUSES = (
+    "finite", "nan", "positive_infinity", "negative_infinity", "not_computed",
+)
 
 
-def _measurement(value):
+def _counts(values):
+    measurements = [
+        item if isinstance(item, dict) and "status" in item else _measurement(item)
+        for item in values
+    ]
+    return {
+        "total": len(measurements),
+        **{
+            status: sum(item["status"] == status for item in measurements)
+            for status in MEASUREMENT_STATUSES
+        },
+    }
+
+
+def _measurement(value=None, *, error=None):
+    if error is not None:
+        return {"value": None, "status": "not_computed", "error": error}
     status = ("finite" if np.isfinite(value) else "nan" if np.isnan(value)
               else "positive_infinity" if value > 0 else "negative_infinity")
     return {"value": float(value) if np.isfinite(value) else None, "status": status}
+
+
+def _run_measurement(row, metric):
+    if metric in SUBGROUP_METRICS and "subgroups" in row:
+        return row["subgroups"]["metrics"][metric]
+    return _measurement(row[metric])
 
 
 def _mean(xs):
@@ -598,14 +680,21 @@ def main(n_explain=None) -> None:
     for metric in METRICS:
         direction, c_good, c_warn = CURRENT_DEFAULTS[metric]
         pooled = [r[metric] for r in rows]
+        pooled_measurements = [_run_measurement(r, metric) for r in rows]
         per_dataset = {
             dname: [r[metric] for r in rows if r["dataset"] == dname]
             for dname in datasets
         }
+        per_dataset_measurements = {
+            dname: [_run_measurement(r, metric) for r in rows if r["dataset"] == dname]
+            for dname in datasets
+        }
         summary[metric] = {
             "direction": direction,
-            "run_counts": _counts(pooled),
-            "per_dataset_run_counts": {d: _counts(v) for d, v in per_dataset.items()},
+            "run_counts": _counts(pooled_measurements),
+            "per_dataset_run_counts": {
+                d: _counts(v) for d, v in per_dataset_measurements.items()
+            },
             "pooled_median": round(_pct(pooled, 50), 4),
             "pooled_p10": round(_pct(pooled, 10), 4),
             "pooled_p90": round(_pct(pooled, 90), 4),
@@ -622,7 +711,10 @@ def main(n_explain=None) -> None:
         "run_metric": "mean_excluding_nan_preserving_infinity",
         "summary": "finite_run_percentiles",
         "summary_unit": "dataset_model_seed_run",
-        "note": "Percentiles describe runs, not confidence intervals or independent samples.",
+        "note": (
+            "Percentiles describe runs, not confidence intervals or independent samples; "
+            "not-computed runs are excluded numerically and counted separately."
+        ),
     }
     budget = {
         "requested_explanations": int(n_explain), "background_max": BG,
@@ -638,7 +730,7 @@ def main(n_explain=None) -> None:
     }
     exported_runs = [
         {**{key: value for key, value in row.items() if key not in METRICS},
-         "metrics": {key: _measurement(row[key]) for key in METRICS}}
+         "metrics": {key: _run_measurement(row, key) for key in METRICS}}
         for row in rows
     ]
     dataset_summary = {

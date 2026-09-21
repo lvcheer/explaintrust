@@ -1,8 +1,9 @@
 # Reproducible benchmark refresh protocol
 
 Status: frozen for the benchmark refresh started on 2026-09-20. Amended on
-2026-09-21 to add the real-data output and historical-comparison contracts;
-scientific parameters were not changed.
+2026-09-21 to add the real-data output and historical-comparison contracts and
+to define handling for subgroup TreeSHAP additivity failures; scientific
+parameters were not changed.
 
 ## Purpose
 
@@ -17,12 +18,11 @@ result artifacts at that revision are recorded in `baseline_manifest.json`.
 
 ## Frozen scope
 
-The machine-readable companion to this document is `config.json` (schema 3).
+The machine-readable companion to this document is `config.json` (schema 4).
 It records the runner constants and metric defaults audited on 2026-09-20. The
-synthetic runner loads and validates its frozen section. The real-data runner
-does not yet validate the file; adding that check is the next engineering step
-and must not silently alter this frozen protocol. The refresh uses the code paths
-and metric definitions already present at the source revision above.
+synthetic and real-data runners load and validate their frozen sections. The
+refresh uses the code paths and metric definitions already present at the
+source revision above, except for amendments recorded in this protocol.
 During the run:
 
 - do not add explainers, datasets, models, or metrics;
@@ -130,6 +130,18 @@ rank, stability sign, five method-disagreement values, and two subgroup values.
 Method-disagreement and subgroup values are descriptive. Run values are means
 that omit NaN but preserve infinity; P10/median/P90 summarize finite
 dataset/model/seed run aggregates and are not confidence intervals.
+
+TreeSHAP's additivity check remains enabled. If SHAP raises its dedicated
+`ExplainerError` while computing the 2,000-row subgroup attribution batch, only
+`distribution_rank` and `distribution_flip` are recorded as `not_computed` for
+that dataset/model/seed run. The runner records the exception type and message,
+the sampled-row count, and the deterministic test positions; it does not drop
+the failing row or recompute with the check disabled. Other metrics in that run
+remain valid. The exception is handled only at this subgroup stage: the same
+error during the four primary explanations or any other stage still stops the
+run. Any other exception also stops the run. This amendment follows the failed
+first attempt, which published no result bundle; all 48 runs must restart under
+this revised contract.
 
 All instance-level values and run contexts must be retained.
 
