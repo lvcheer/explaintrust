@@ -39,7 +39,8 @@ All notable changes are recorded here. This project follows
   by patient before fitting imputation, scaling or categorical vocabulary.
   Per-run exports record split provenance and patient overlap; dataset loaders
   now return raw features and split metadata instead of globally encoded arrays.
-  Historical benchmark results remain explicitly marked as requiring a rerun.
+  The historical benchmark remains immutable; the reviewed refreshed bundle,
+  change report and generated public table now document the corrected protocol.
 
 - Reports now separate scored faithfulness/sensitivity/reproducibility checks
   from descriptive method disagreement and subgroup heterogeneity. Descriptive
@@ -52,8 +53,10 @@ All notable changes are recorded here. This project follows
   Tree calls without a background retain training-path behavior; contradictory
   explicit mode/background combinations are rejected. Optional returned context
   and app exports record the actual reference, mode and selected-class base value.
-  Experiment and article generators use the aligned protocol; saved historical
-  results are marked as awaiting regeneration.
+  Experiment and article generators use the aligned protocol. Reviewed synthetic,
+  real-data and article result bundles now drive their public tables, numerical
+  claims and figures through a write/check consistency command; historical
+  top-level experiment JSON files remain preserved comparison baselines.
 - Binary `class_index=0` now selects the class-0 decision margin and native
   single-output SHAP attributions, with matching LIME directions. Per-class
   SHAP outputs and already-selected KernelSHAP outputs are not negated again.

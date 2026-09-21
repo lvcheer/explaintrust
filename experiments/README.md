@@ -1,11 +1,10 @@
 # Threshold calibration experiment
 
-**Protocol update (2026-09-05).** The script now uses interventional TreeSHAP
-with the full explicit background shared with LIME. The checked-in
-`calibration.json` and tables below are historical results from the earlier
-training-path protocol; they have not been rerun for this change. Recompute and
-review thresholds after the remaining correctness fixes, before using them to
-characterize the updated pipeline.
+**Refresh completed (2026-09-21).** The reviewed run uses interventional
+TreeSHAP with the full explicit background shared with LIME. The generated table
+below comes from `experiments/results/synthetic/summary.json`; the top-level
+`calibration.json` remains an immutable historical baseline from the earlier
+training-path protocol.
 
 A controlled study that measures each report metric in engineered nominally
 "good" and "bad" regimes, to see (a) which metrics discriminate those regimes,
@@ -91,7 +90,7 @@ not on the samples used to choose the thresholds.
    explainers; they do not identify proxy reliance as inherently invalid.
 
 4. **Magnitude disagreement is descriptive, not a trust label.** Its held-out
-   median is 0.87 in the nominally good regime and 0.55 in the bad regime. The
+   median is 0.82 in the nominally good regime and 0.55 in the stress regime. The
    metric captures a per-feature relative gap that rank/sign/top-k cannot, but
    this experiment provides no basis for interpreting a larger gap as less
    trustworthy.

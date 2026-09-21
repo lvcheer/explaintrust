@@ -1,15 +1,11 @@
 # Real-data benchmark: where the metrics actually land
 
-**Protocol update (2026-09-05).** New runs use the full shared background for
-SHAP and LIME and save per-run SHAP context. The checked-in JSON and tables below
-predate this change: TreeSHAP used training-path counts, while LinearSHAP could
-subsample the 200-row reference internally. These historical numbers do not
-validate the updated pipeline and must be regenerated after the remaining
-correctness and benchmark-protocol fixes.
-
-New benchmark output also marks method/subgroup diagnostics as `descriptive`,
-with no active quality thresholds. The historical verdict column below reflects
-the old report policy and is not the current classification of these diagnostics.
+**Reviewed refresh (2026-09-21).** The generated table below comes from the
+completed bundle under `experiments/results/real/`. These runs use the full
+shared background for SHAP and LIME, save per-run SHAP context, and mark
+method/subgroup diagnostics as `descriptive` with no active quality thresholds.
+The top-level `experiments/benchmark_results.json` remains the immutable
+historical comparison baseline.
 
 **Split/preprocessing update (2026-09-06).** New runs keep Adult's official
 training/test files separate. Its holdout is fixed across seeds; seeds still
@@ -29,10 +25,11 @@ protocol, row counts, encoded dimension, split-index hashes and (for Diabetes)
 patient counts and overlap. Top-level dataset dimensions now describe raw
 features; encoded dimensions can vary between patient splits.
 
-The tables and checked-in JSON below used pooled preprocessing and random row
-splits, including recombination of Adult's official files. They remain historical
-results and cannot be used as evidence for the corrected protocol. A full rerun
-and comparison are still required before updating empirical conclusions.
+The preserved historical baseline used pooled preprocessing and random row
+splits, including recombination of Adult's official files. The refreshed bundle
+uses the corrected protocol above. Because several protocol changes occurred
+together and the historical file has no raw runs, the two bundles are not
+directly comparable at the run level.
 
 **Refresh-output update (2026-09-21).** The runner now validates the frozen
 configuration and historical baseline before loading data, then verifies the
@@ -86,8 +83,8 @@ shape of `stability_runs` (single object to list). Each instance still uses six
 sensitivity perturbations and five LIME repeats; five full-batch LIME calls
 include the displayed explanation, with no extra call for its first repeat.
 The default explanation sample count remains four: this fixes uneven coverage
-but does not establish dataset-wide representativeness. Historical results
-must be rerun before comparison under the new protocol.
+but does not establish dataset-wide representativeness. The reviewed comparison
+and its limitations are recorded in `experiments/results/real/change_report.md`.
 
 **Sampling update (2026-09-06).** Explained instances are now uniformly sampled
 without replacement from the test partition using the outer seed, instead of
@@ -112,8 +109,8 @@ from `experiments/config.json`.
 Sampling units are test rows (encounters for Diabetes), not unique patients;
 multiple encounters from a held-out patient may be sampled. Random selection
 removes fixed-prefix selection but does not guarantee class balance or establish
-patient-level independence. Historical fixed-prefix results remain pending a
-rerun under this recorded sampling protocol.
+patient-level independence. The fixed-prefix values remain only in the
+historical baseline; the refreshed bundle uses the recorded sampled positions.
 
 Summary P10/median/P90 describe **finite run aggregates**, with total/finite and
 non-finite run counts both pooled and per dataset. They are not confidence
@@ -163,29 +160,32 @@ median. ↑ higher-is-better, ↓ lower-is-better.*)
 
 ## Findings
 
-1. **Correcting LIME's feature units changes the rank results materially.** The
-   pooled all-feature run stability is 0.92 rather than the previous 0.46, and
-   SHAP–LIME rank agreement is 0.84 rather than 0.46. The earlier values mixed
-   standardized LIME coefficients with original-coordinate perturbations.
+1. **Expanded coverage exposes top-k instability.** Full-rank stability remains
+   near its historical level, but pooled top-k stability is now 0.88 rather than
+   1.00. Recomputing the refreshed raw runs with only each run's first explained
+   instance restores a median of 1.00, so the material change is consistent with
+   evaluating all four sampled instances instead of only the first.
 
-2. **Some defaults remain too loose or saturating.** Comprehensiveness explodes on
-   high-dimensional data (median 28.5, P90 523) because "remove 3 random
-   features" does almost nothing when 80 features are noise — so the default
-   `> 1` gate is trivially met and the ratio is meaningless as a *graded* number.
-   Max-sensitivity defaults (0.5 / 2.0) are far looser than observed values
-   (pooled median 0.0, P90 0.032 in standardized neighbourhoods).
+2. **Comprehensiveness is heavy-tailed, not a graded effect size.** Its pooled
+   median is 20.67 and P90 is 8.112e+09. Five sample-level ratios exceed `1e9`
+   because the random-removal denominator is zero or nearly zero. The `> 1`
+   default remains only a "not noise" gate; the absolute ratio should not rank
+   datasets or explanation quality. Max-sensitivity remains much smaller than
+   its defaults, with pooled median 0 and P90 0.0424.
 
-3. **Transferability is partial.** Removal-effect correlation (0.43 vs 0.48),
-   sign stability, sign disagreement, cross-segment rank stability, and
-   top-k overlap transfer well across the two datasets. But comprehensiveness
-   (64 vs 11) and top-k flip rate (1.0 vs 0.0) are strongly dataset-specific — a
-   single threshold cannot serve both.
+3. **Transferability is partial and descriptive diagnostics differ by dataset.**
+   Removal-effect correlation is similar on Adult and Diabetes (0.45 vs 0.48),
+   while comprehensiveness differs (45.53 vs 13.61) and top-k flip rate is 1.0
+   vs 0.0. The latter is a coarse descriptive subgroup diagnostic, not evidence
+   for a universal quality threshold. One Adult subgroup run is explicitly
+   not computed and remains counted rather than silently discarded.
 
-4. **Scale handling must be explicit.** This benchmark standardizes numeric
-   features before fitting. The library now converts LIME slopes back to original
-   feature units and defines sensitivity neighbourhoods in background-standardized
-   coordinates, so heterogeneous raw scales no longer silently corrupt those
-   two calculations.
+4. **The refresh is not directly comparable run by run.** Training-only
+   preprocessing, corrected holdouts, sampled explanation rows, explicit
+   interventional backgrounds, and four-instance stability coverage all differ
+   from the historical protocol. Twelve of 42 prespecified comparisons are
+   flagged as material changes, but the historical file lacks raw runs needed
+   to isolate causes or claim improved explanation quality.
 
 ## Resolution
 
@@ -194,8 +194,9 @@ The implementation changes motivated by these findings are:
 * **Rank stability/agreement.** `cross_run_stability` and
   `explainer_disagreement` return a **`topk_rank_corr`** (Spearman over the
   top-k features only). The metric function returns both; `report.py` scores the
-  top-k result while preserving the full result for inspection.
-  Here the top-k versions read **1.00** (stability) and **0.69** (agreement).
+  top-k stability result while preserving full-rank stability for inspection;
+  method agreement remains descriptive. Here the pooled top-k values are
+  **0.88** (stability) and **0.75** (agreement).
 
 * **Comprehensiveness** is now a `> 1` "not noise" **gate** in `report.py`,
   not a graded score (its absolute size saturates on high-dimensional data).
@@ -203,11 +204,11 @@ The implementation changes motivated by these findings are:
 * **LIME infidelity** is now **normalized** by the mean squared model-output
   change, making it a scale-free fraction (≈1 = "no better than
   predicting zero change"). In this rerun its medians are similar across the two
-  datasets (Adult 0.75 vs Diabetes 0.72).
+  datasets (Adult 0.74 vs Diabetes 0.66).
 
 Remaining known limitation:
 
 * **Top-k flip rate is coarse and dataset-specific** (1.0 on Adult vs 0.0 on
   Diabetes — with three segments it can only be 0 / 0.5 / 1.0). It is kept as a
-  coarse "does the story flip across segments" signal, not a finely-gradable
-  score; the thresholds treat 0 as good and 1 as bad.
+  descriptive "does the story flip across segments" signal, not a scored or
+  finely gradable quality measure.

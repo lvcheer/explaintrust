@@ -31,8 +31,11 @@ def test_public_result_map_references_are_closed_and_unique():
     manual_ids = [claim["id"] for claim in mapping["checked_manual_claims"]]
     assert len(manual_ids) == len(set(manual_ids))
     for claim in mapping["checked_manual_claims"]:
+        assert claim["implementation_status"] == "implemented"
         assert set(claim["source_ids"]) <= known_sources
         assert all((ROOT / target).exists() for target in claim["targets"])
+        for field in ("required_text", "forbidden_text"):
+            assert set(claim.get(field, {})) <= set(claim["targets"])
 
 
 def test_only_planned_sources_may_be_absent():

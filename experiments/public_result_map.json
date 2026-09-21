@@ -155,36 +155,124 @@
       "id": "root_readme_refresh_status",
       "source_ids": ["synthetic_summary", "real_summary", "real_change_report"],
       "targets": ["README.md"],
+      "implementation_status": "implemented",
+      "required_text": {
+        "README.md": [
+          "Reviewed synthetic calibration and real-data benchmark",
+          "outputs are stored under `experiments/results/`; their public tables are generated",
+          "经过审查的合成校准与真实数据基准结果保存在",
+          "公开表格由这些规范化摘要生成"
+        ]
+      },
+      "forbidden_text": {
+        "README.md": [
+          "Historical experiment tables await regeneration.",
+          "历史实验表格仍待重算。"
+        ]
+      },
       "rule": "English and Chinese refresh-status wording must agree and must not say reviewed experiment tables await regeneration."
     },
     {
       "id": "experiment_findings",
       "source_ids": ["synthetic_summary"],
       "targets": ["experiments/README.md", "explaintrust/report.py"],
+      "implementation_status": "implemented",
+      "check_kind": "synthetic_findings",
+      "required_text": {
+        "experiments/README.md": [
+          "**Refresh completed (2026-09-21).**",
+          "**Three metrics separate on held-out seeds.**",
+          "descriptive diagnostics and do not affect the overall verdict"
+        ],
+        "explaintrust/report.py": [
+          "removal-effect correlation, infidelity, and max-sensitivity separate"
+        ]
+      },
+      "forbidden_text": {
+        "experiments/README.md": ["they have not been rerun"]
+      },
       "rule": "Qualitative separation and negative-result claims must match held-out pass and flag evidence; fitted thresholds remain experiment-specific."
     },
     {
       "id": "real_findings",
       "source_ids": ["real_summary", "real_change_report"],
       "targets": ["experiments/benchmark_README.md", "CHANGELOG.md"],
+      "implementation_status": "implemented",
+      "check_kind": "real_findings",
+      "required_text": {
+        "experiments/benchmark_README.md": [
+          "**Reviewed refresh (2026-09-21).**",
+          "the two bundles are not",
+          "directly comparable at the run level.",
+          "One Adult subgroup run is explicitly",
+          "descriptive \"does the story flip across segments\" signal"
+        ],
+        "CHANGELOG.md": [
+          "reviewed refreshed bundle",
+          "Reviewed synthetic,"
+        ]
+      },
+      "forbidden_text": {
+        "experiments/benchmark_README.md": [
+          "must be regenerated after the remaining",
+          "still required before updating empirical conclusions",
+          "remain pending a rerun"
+        ],
+        "CHANGELOG.md": [
+          "marked as requiring a rerun",
+          "marked as awaiting regeneration"
+        ]
+      },
       "rule": "Findings must retain material changes, not-computed values, protocol non-comparability, and descriptive diagnostic roles."
     },
     {
       "id": "decision_policy_mirror",
       "source_ids": ["real_summary", "report_policy"],
       "targets": ["experiments/benchmark_real_data.py"],
+      "implementation_status": "implemented",
+      "check_kind": "decision_policy_mirror",
       "rule": "Scored defaults and directions must match DEFAULT_THRESHOLDS; descriptive metrics must not acquire thresholds."
     },
     {
       "id": "article_refresh_status",
       "source_ids": ["article_results"],
       "targets": ["article/README.md", "article/index.qmd"],
+      "implementation_status": "implemented",
+      "required_text": {
+        "article/README.md": ["**Numerical refresh completed (2026-09-21).**"],
+        "article/index.qmd": ["**Version note (2026-09-21):**"]
+      },
+      "forbidden_text": {
+        "article/README.md": ["**Pending numerical refresh"],
+        "article/index.qmd": ["historical snapshots"]
+      },
       "rule": "Pending-refresh notices may be removed only after article data, claims, and figures are regenerated together."
     },
     {
       "id": "live_demo_boundary",
       "source_ids": ["report_policy"],
       "targets": ["app/streamlit_app.py", "examples/demo.py"],
+      "implementation_status": "implemented",
+      "required_text": {
+        "app/streamlit_app.py": [
+          "All displayed metrics are computed at runtime; this module embeds neither"
+        ],
+        "examples/demo.py": [
+          "All displayed metrics are computed at runtime; this module embeds neither"
+        ]
+      },
+      "forbidden_text": {
+        "app/streamlit_app.py": [
+          "experiments/results/",
+          "experiments/calibration.json",
+          "experiments/benchmark_results.json"
+        ],
+        "examples/demo.py": [
+          "experiments/results/",
+          "experiments/calibration.json",
+          "experiments/benchmark_results.json"
+        ]
+      },
       "rule": "The demo remains a live computation and must not embed benchmark medians or fitted synthetic thresholds as universal constants."
     }
   ],

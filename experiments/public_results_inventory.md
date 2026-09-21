@@ -6,8 +6,9 @@ The source-to-target contract is frozen in
 `experiments/public_result_map.json` (schema 1). The
 `python -m experiments.build_all_results` entry point consumes that map in
 write and check modes. It currently controls the two benchmark Markdown tables
-and all article-derived claims, data, and figures; manual-claim checks remain
-planned. This inventory explains the boundary in human-readable form.
+and all article-derived claims, data, and figures, and it checks six manually
+reviewed result contracts. Workflow integration remains planned. This inventory
+explains the boundary in human-readable form.
 
 This inventory covers every tracked source that stores, renders, or makes a
 reader-facing claim about experiment results. It distinguishes the two reviewed
@@ -43,9 +44,9 @@ sources. Article examples remain a third, separate result family.
 | `experiments/README.md` — Results and Findings | Generated refreshed table plus manually reviewed synthetic findings | Refreshed synthetic summary | Keep the table generated; check surrounding qualitative and negative-result prose against the same summary. |
 | `experiments/benchmark_README.md` — Results, Findings, and Resolution | Generated refreshed table plus manually reviewed real-data findings | Refreshed real-data summary and change report | Keep the table generated; retain protocol history and use the reviewed change report for interpretation. |
 | `article/index.qmd` — sections 1–4 | Removal correlation, comprehensiveness, method-agreement, sign-disagreement, stability, and collinearity example numbers | `article/figures/article_results.json` | Generate marked claims from the article bundle. Do not source these claims from the Adult/Diabetes benchmark. |
-| `README.md` — English and Chinese quickstart sections | No benchmark table; both language sections still state that historical experiment tables await regeneration | Reviewed synthetic and real-data bundle status | Keep this prose manual but make check mode reject stale or mismatched bilingual status wording. |
-| `explaintrust/report.py` — module documentation | Qualitative claim that three metrics separate engineered regimes while several do not | Refreshed synthetic summary | Recheck the claim after the synthetic rerun. Numeric defaults remain a decision policy, not fitted benchmark output. |
-| `CHANGELOG.md` — Unreleased | States that saved historical results require regeneration | Refresh completion and release history | Record completion, protocol changes, and non-comparability without copying a new result table into the changelog. |
+| `README.md` — English and Chinese quickstart sections | Matching bilingual status: reviewed outputs drive generated public tables while top-level JSON remains historical | Reviewed synthetic and real-data bundle status | Keep this prose manual; check mode rejects stale or mismatched status wording. |
+| `explaintrust/report.py` — module documentation | Qualitative claim that three metrics separate engineered regimes while several do not | Refreshed synthetic summary | Keep the checked claim qualitative. Numeric defaults remain a decision policy, not fitted benchmark output. |
+| `CHANGELOG.md` — Unreleased | Records completed refreshes, protocol changes, preserved baselines, and non-comparability | Refresh completion and release history | Keep the checked status without copying result tables into the changelog. |
 | `article/README.md` | Documents the completed numerical refresh and reproduction commands | Article-example regeneration status | Keep the status synchronized with the generated bundle and consistency check. |
 
 ## Figures and rendered outputs
@@ -65,9 +66,9 @@ diagnostic only.
 
 | Surface | What users see | Classification | Required action |
 |---|---|---|---|
-| `app/streamlit_app.py` | Live-computed model performance, metric values, coverage counts, subgroup tables, and exported report JSON | Per-session computation, not a checked-in benchmark snapshot | Confirm wording remains diagnostic and that the app does not embed refreshed benchmark constants. |
+| `app/streamlit_app.py` | Live-computed model performance, metric values, coverage counts, subgroup tables, and exported report JSON | Per-session computation, not a checked-in benchmark snapshot | A checked contract keeps wording diagnostic and forbids references to stored benchmark result files. |
 | `explaintrust/report.py::DEFAULT_THRESHOLDS` | Six good/warn boundaries included in reports and visible through the app/export | Versioned decision-policy defaults, not validated universal thresholds | Keep distinct from fitted synthetic boundaries. Any change requires a separate policy decision and tests. |
-| `experiments/benchmark_real_data.py::CURRENT_DEFAULTS` | Defaults printed beside benchmark medians | Manual mirror of the report decision policy | Consistency checking must detect drift from `DEFAULT_THRESHOLDS`; do not silently fit these values to the refreshed test results. |
+| `experiments/benchmark_real_data.py::CURRENT_DEFAULTS` | Defaults printed beside benchmark medians | Checked mirror of the report decision policy | Check mode detects drift from `DEFAULT_THRESHOLDS`; do not silently fit these values to the refreshed test results. |
 | `examples/demo.py` | Live example metrics and report printed when run | Computed example, not a stored benchmark result | Use as a smoke test; do not copy its one-run numbers into public findings. |
 
 The Streamlit app contains no checked-in benchmark conclusion. Its displayed
@@ -117,17 +118,20 @@ The following must not become canonical sources for refreshed claims:
 `CITATION.cff` is release metadata rather than a result source. At release time,
 its version/date must point to the commit containing the reviewed results.
 
-## Consistency-check coverage required later
+## Current consistency-check coverage
 
-Automation must eventually verify:
+`python -m experiments.build_all_results --check` now verifies:
 
 1. both experiment Markdown tables against their corresponding summaries;
-2. qualitative result claims in `README.md`, `article/README.md`,
-   `CHANGELOG.md`, and `explaintrust/report.py` through explicit status markers
-   or narrowly scoped assertions;
+2. qualitative result claims in `README.md`, both experiment READMEs,
+   `article/README.md`, `CHANGELOG.md`, and `explaintrust/report.py` through
+   narrowly scoped assertions;
 3. article claims, compatibility JSON, and static figures against the canonical
    `article_results.json` bundle (implemented);
 4. the real-data runner's displayed defaults against
    `explaintrust.report.DEFAULT_THRESHOLDS`;
-5. that ignored render/build outputs are regenerated from the reviewed sources
-   rather than treated as inputs.
+5. that the Streamlit and headless demos remain live computations without
+   references to stored benchmark outputs.
+
+CI, release, and contributor-command integration remain the next workflow step.
+Ignored Quarto/build outputs remain delivery artifacts rather than inputs.

@@ -159,7 +159,10 @@ Tree calls without a background retain the training-path mode. Request
 `shap_attributions(..., return_context=True)` for `(values, context)`, including
 the selected-class SHAP base value, mode, and background digest. The app exports
 this context. Shared reference rows do not make nonlinear LIME contributions an
-exact SHAP decomposition. Historical experiment tables await regeneration.
+exact SHAP decomposition. Reviewed synthetic calibration and real-data benchmark
+outputs are stored under `experiments/results/`; their public tables are generated
+from those canonical summaries, while the top-level JSON files remain historical
+baselines.
 
 ### Tests
 
@@ -322,7 +325,8 @@ shap_values = shap_attributions(
 背景行，不再隐式抽样。如需控制成本，请先显式选取较小背景，再将相同行传给 SHAP 与 LIME。
 树模型不传背景时保留原有路径模式。设置 `return_context=True` 可取得 `(values, context)`，
 包括对应类别的 SHAP 基值、模式和背景指纹；应用会导出这些信息。共同背景并不使非线性
-LIME 贡献成为精确的 SHAP 分解。历史实验表格仍待重算。
+LIME 贡献成为精确的 SHAP 分解。经过审查的合成校准与真实数据基准结果保存在
+`experiments/results/`；公开表格由这些规范化摘要生成，顶层 JSON 文件则保留为历史基线。
 
 #### 测试
 

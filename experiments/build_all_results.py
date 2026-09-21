@@ -12,6 +12,7 @@ Run from the repository root:
 from __future__ import annotations
 
 import argparse
+import ast
 import hashlib
 import json
 import math
@@ -244,6 +245,140 @@ def _render_article_figure(results: dict, renderer: str) -> bytes:
     raise ValueError(f"unknown article figure renderer: {renderer}")
 
 
+def _literal_assignment(path: Path, name: str):
+    tree = ast.parse(path.read_text())
+    for node in tree.body:
+        if isinstance(node, ast.Assign):
+            names = [target.id for target in node.targets if isinstance(target, ast.Name)]
+            if name in names:
+                return ast.literal_eval(node.value)
+        if isinstance(node, ast.AnnAssign) and isinstance(node.target, ast.Name):
+            if node.target.id == name:
+                return ast.literal_eval(node.value)
+    raise ValueError(f"{path} does not define a literal {name}")
+
+
+def _synthetic_findings_current(summary: dict, text: str) -> bool:
+    metrics = {metric["name"]: metric for metric in summary["metrics"]}
+    magnitude = metrics["SHAP vs LIME magnitude disagreement (top-3)"]
+    expected = (
+        f"median is {magnitude['good_median']:.2f} in the nominally good regime "
+        f"and {magnitude['bad_median']:.2f} in the stress regime"
+    )
+    separating = {
+        metric["name"]
+        for metric in summary["metrics"]
+        if metric["good_pass_rate"] >= 0.8 and metric["bad_flag_rate"] >= 0.75
+    }
+    return expected in text and separating == {
+        "SHAP removal-effect correlation",
+        "LIME local fidelity (infidelity)",
+        "Max sensitivity",
+    }
+
+
+def _real_findings_current(summary: dict, change_report: str, text: str) -> bool:
+    metrics = summary["metrics"]
+    expected = [
+        f"pooled top-k stability is now {metrics['stability_rank_topk']['pooled_median']:.2f}",
+        (
+            f"median is {metrics['comprehensiveness']['pooled_median']:.2f} and "
+            f"P90 is {_format_number(metrics['comprehensiveness']['pooled_p90'])}"
+        ),
+        (
+            f"with pooled median {_format_number(metrics['sensitivity']['pooled_median'])} "
+            f"and P90 {metrics['sensitivity']['pooled_p90']:.4f}"
+        ),
+        (
+            f"({metrics['removal_corr']['per_dataset_median']['adult']:.2f} vs "
+            f"{metrics['removal_corr']['per_dataset_median']['diabetes']:.2f})"
+        ),
+        (
+            f"({metrics['comprehensiveness']['per_dataset_median']['adult']:.2f} vs "
+            f"{metrics['comprehensiveness']['per_dataset_median']['diabetes']:.2f})"
+        ),
+        f"**{metrics['stability_rank_topk']['pooled_median']:.2f}** (stability)",
+        f"**{metrics['disagreement_rank_topk']['pooled_median']:.2f}** (agreement)",
+        (
+            f"Adult {metrics['infidelity']['per_dataset_median']['adult']:.2f} vs "
+            f"Diabetes {metrics['infidelity']['per_dataset_median']['diabetes']:.2f}"
+        ),
+    ]
+    not_computed = metrics["distribution_rank"]["run_counts"]["not_computed"]
+    return (
+        all(value in text for value in expected)
+        and not_computed == 1
+        and "Twelve of the 42 dataset/scope comparisons" in change_report
+        and "an automatic regression failure" in change_report
+    )
+
+
+def _decision_policy_current(root: Path, mapping: dict) -> bool:
+    report_path = root / "explaintrust/report.py"
+    runner_path = root / "experiments/benchmark_real_data.py"
+    defaults = _literal_assignment(report_path, "DEFAULT_THRESHOLDS")
+    directions = _literal_assignment(report_path, "_THRESHOLD_DIRECTIONS")
+    runner = _literal_assignment(runner_path, "CURRENT_DEFAULTS")
+    real_target = next(
+        target for target in mapping["generated_targets"]
+        if target["id"] == "real_results_table"
+    )
+    policy_keys = real_target["policy_keys"]
+    scored = set()
+    for metric, (direction, good, warn) in runner.items():
+        if direction == "descriptive":
+            if good is not None or warn is not None or metric in policy_keys:
+                return False
+            continue
+        policy_key = policy_keys.get(metric)
+        if policy_key is None:
+            return False
+        scored.add(metric)
+        if directions.get(policy_key) != direction:
+            return False
+        if defaults.get(policy_key) != (good, warn):
+            return False
+    return scored == set(policy_keys)
+
+
+def _manual_claims_stale(mapping: dict, root: Path) -> list[str]:
+    stale = []
+
+    def mark(path: str):
+        if path not in stale:
+            stale.append(path)
+
+    for claim in mapping["checked_manual_claims"]:
+        if claim.get("implementation_status") != "implemented":
+            continue
+        texts = {}
+        for target in claim["targets"]:
+            texts[target] = (root / target).read_text()
+            required = claim.get("required_text", {}).get(target, [])
+            forbidden = claim.get("forbidden_text", {}).get(target, [])
+            if not all(value in texts[target] for value in required):
+                mark(target)
+            if any(value in texts[target] for value in forbidden):
+                mark(target)
+
+        kind = claim.get("check_kind")
+        if kind == "synthetic_findings":
+            summary = _load_json(root / "experiments/results/synthetic/summary.json")
+            if not _synthetic_findings_current(summary, texts["experiments/README.md"]):
+                mark("experiments/README.md")
+        elif kind == "real_findings":
+            summary = _load_json(root / "experiments/results/real/summary.json")
+            change_report = (root / "experiments/results/real/change_report.md").read_text()
+            if not _real_findings_current(
+                summary, change_report, texts["experiments/benchmark_README.md"]
+            ):
+                mark("experiments/benchmark_README.md")
+        elif kind == "decision_policy_mirror":
+            if not _decision_policy_current(root, mapping):
+                mark("experiments/benchmark_real_data.py")
+    return stale
+
+
 def build(*, check: bool, root: Path = ROOT) -> list[str]:
     mapping = _load_json(root / MAP_PATH)
     sources = {source["id"]: source for source in mapping["sources"]}
@@ -303,6 +438,16 @@ def build(*, check: bool, root: Path = ROOT) -> list[str]:
             path.write_bytes(_render_article_figure(source, renderer_name))
         else:
             path.write_text(expected)
+
+    manual_stale = _manual_claims_stale(mapping, root)
+    for path in manual_stale:
+        if path not in changed:
+            changed.append(path)
+    if manual_stale and not check:
+        raise ValueError(
+            "manual result claims require review; they were not modified automatically: "
+            + ", ".join(manual_stale)
+        )
     return changed
 
 
@@ -319,7 +464,7 @@ def main(argv=None) -> int:
     args = _parse_args(argv)
     changed = build(check=args.check)
     if args.check and changed:
-        print("stale generated result artifacts:")
+        print("stale public result artifacts or manual contracts:")
         for path in changed:
             print(f"- {path}")
         return 1
@@ -328,10 +473,20 @@ def main(argv=None) -> int:
         target.get("implementation_status") == "implemented"
         for target in mapping["generated_targets"]
     )
+    manual_total = sum(
+        claim.get("implementation_status") == "implemented"
+        for claim in mapping["checked_manual_claims"]
+    )
     if args.check:
-        print(f"checked {total} generated result artifacts")
+        print(
+            f"checked {total} generated result artifacts and "
+            f"{manual_total} manual result contracts"
+        )
     else:
-        print(f"updated {len(changed)} of {total} generated result artifacts")
+        print(
+            f"updated {len(changed)} of {total} generated result artifacts; "
+            f"verified {manual_total} manual result contracts"
+        )
     return 0
 
 

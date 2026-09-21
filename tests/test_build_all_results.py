@@ -17,14 +17,22 @@ def _copy_result_contract(tmp_path):
         "experiments/public_result_map.json",
         "experiments/results/synthetic/summary.json",
         "experiments/results/real/summary.json",
+        "experiments/results/real/change_report.md",
         "experiments/README.md",
         "experiments/benchmark_README.md",
+        "experiments/benchmark_real_data.py",
+        "explaintrust/report.py",
+        "README.md",
+        "CHANGELOG.md",
         "article/figures/article_results.json",
         "article/figures/conversion.json",
         "article/figures/conversion_flip.png",
         "article/figures/endpoints.png",
         "article/index.qmd",
+        "article/README.md",
         "article/scripts/generate_figures.py",
+        "app/streamlit_app.py",
+        "examples/demo.py",
     ]
     for relative in paths:
         destination = tmp_path / relative
@@ -166,6 +174,51 @@ def test_check_detects_stale_article_result_bundle(tmp_path):
         builder.build(check=False, root=tmp_path)
 
 
+@pytest.mark.parametrize(
+    ("relative", "old", "new"),
+    [
+        (
+            "README.md",
+            "Reviewed synthetic calibration and real-data benchmark",
+            "Historical experiment tables await regeneration.",
+        ),
+        ("experiments/benchmark_README.md", "median is 20.67", "median is 99.99"),
+        (
+            "examples/demo.py",
+            "benchmark medians nor fitted experimental thresholds.",
+            "benchmark medians from experiments/results/.",
+        ),
+    ],
+)
+def test_manual_claim_drift_is_check_only(tmp_path, relative, old, new):
+    _copy_result_contract(tmp_path)
+    target = tmp_path / relative
+    tampered = target.read_text().replace(old, new, 1)
+    target.write_text(tampered)
+
+    assert builder.build(check=True, root=tmp_path) == [relative]
+    assert target.read_text() == tampered
+    with pytest.raises(ValueError, match="manual result claims require review"):
+        builder.build(check=False, root=tmp_path)
+    assert target.read_text() == tampered
+
+
+def test_decision_policy_mirror_drift_is_detected(tmp_path):
+    _copy_result_contract(tmp_path)
+    target = tmp_path / "experiments/benchmark_real_data.py"
+    target.write_text(
+        target.read_text().replace(
+            '"removal_corr": ("higher", 0.5, 0.2)',
+            '"removal_corr": ("higher", 0.6, 0.2)',
+            1,
+        )
+    )
+
+    assert builder.build(check=True, root=tmp_path) == [
+        "experiments/benchmark_real_data.py"
+    ]
+
+
 def test_checked_in_artifacts_are_current():
     assert builder.build(check=True, root=ROOT) == []
 
@@ -176,4 +229,4 @@ def test_check_cli_returns_nonzero_for_drift(monkeypatch, capsys):
     )
 
     assert builder.main(["--check"]) == 1
-    assert "stale generated result artifacts" in capsys.readouterr().out
+    assert "stale public result artifacts or manual contracts" in capsys.readouterr().out
