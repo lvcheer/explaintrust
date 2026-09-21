@@ -45,7 +45,7 @@ sources. Article examples remain a third, separate result family.
 | `experiments/README.md` — Results and Findings | Generated refreshed table plus manually reviewed synthetic findings | Refreshed synthetic summary | Keep the table generated; check surrounding qualitative and negative-result prose against the same summary. |
 | `experiments/benchmark_README.md` — Results, Findings, and Resolution | Generated refreshed table plus manually reviewed real-data findings | Refreshed real-data summary and change report | Keep the table generated; retain protocol history and use the reviewed change report for interpretation. |
 | `article/index.qmd` — sections 1–4 | Removal correlation, comprehensiveness, method-agreement, sign-disagreement, stability, and collinearity example numbers | `article/figures/article_results.json` | Generate marked claims from the article bundle. Do not source these claims from the Adult/Diabetes benchmark. |
-| `README.md` — English and Chinese quickstart sections | Matching bilingual status: reviewed outputs drive generated public tables while top-level JSON remains historical | Reviewed synthetic and real-data bundle status | Keep this prose manual; check mode rejects stale or mismatched status wording. |
+| `README.md` — English and Chinese quickstart sections | Matching bilingual status plus checked synthetic separation, top-k stability, and comprehensiveness findings | Reviewed synthetic and real-data summaries plus the real change report | Keep this prose manual; check mode rejects stale status or headline values in either language. |
 | `explaintrust/report.py` — module documentation | Qualitative claim that three metrics separate engineered regimes while several do not | Refreshed synthetic summary | Keep the checked claim qualitative. Numeric defaults remain a decision policy, not fitted benchmark output. |
 | `CHANGELOG.md` — Unreleased | Records completed refreshes, protocol changes, preserved baselines, and non-comparability | Refresh completion and release history | Keep the checked status without copying result tables into the changelog. |
 | `article/README.md` | Documents the completed numerical refresh and reproduction commands | Article-example regeneration status | Keep the status synchronized with the generated bundle and consistency check. |
@@ -124,9 +124,9 @@ its version/date must point to the commit containing the reviewed results.
 `python -m experiments.build_all_results --check` now verifies:
 
 1. both experiment Markdown tables against their corresponding summaries;
-2. qualitative result claims in `README.md`, both experiment READMEs,
-   `article/README.md`, `CHANGELOG.md`, and `explaintrust/report.py` through
-   narrowly scoped assertions;
+2. headline numeric and qualitative result claims in `README.md`, both
+   experiment READMEs, `article/README.md`, `CHANGELOG.md`, and
+   `explaintrust/report.py` through narrowly scoped assertions;
 3. article claims, compatibility JSON, and static figures against the canonical
    `article_results.json` bundle (implemented);
 4. the real-data runner's displayed defaults against

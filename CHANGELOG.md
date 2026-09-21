@@ -63,6 +63,9 @@ All notable changes are recorded here. This project follows
   README, license, changelog, citation metadata and build configuration. Package
   CI clean-installs the built wheel and verifies its import path, metadata,
   dependencies and a serializable minimal trust report.
+- The bilingual README now leads with a runnable quickstart, an example report,
+  metric boundaries, and checked findings from the refreshed synthetic and
+  Adult/Diabetes benchmarks.
 - Binary `class_index=0` now selects the class-0 decision margin and native
   single-output SHAP attributions, with matching LIME directions. Per-class
   SHAP outputs and already-selected KernelSHAP outputs are not negated again.

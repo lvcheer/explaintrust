@@ -182,6 +182,7 @@ def test_check_detects_stale_article_result_bundle(tmp_path):
             "Reviewed synthetic calibration and real-data benchmark",
             "Historical experiment tables await regeneration.",
         ),
+        ("README.md", "`0.875`", "`0.999`"),
         ("experiments/benchmark_README.md", "median is 20.67", "median is 99.99"),
         (
             "examples/demo.py",

@@ -1,51 +1,100 @@
 # explaintrust
 
+[![CI](https://github.com/lvcheer/explaintrust/actions/workflows/ci.yml/badge.svg)](https://github.com/lvcheer/explaintrust/actions/workflows/ci.yml)
+[![Version](https://img.shields.io/github/v/tag/lvcheer/explaintrust?label=version)](https://github.com/lvcheer/explaintrust/tags)
+[![Python](https://img.shields.io/badge/python-3.9--3.12-blue.svg)](https://www.python.org/)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+
 中文说明见[下方](#中文说明) · A Chinese version of this README is [below](#中文说明).
 
-**[Live demo · 在线演示](https://lvcheer-explaintrust-appstreamlit-app-x7k48h.streamlit.app/)** — Try the five-step analysis workflow in your browser. Switch between English and Chinese in the sidebar.
+**explaintrust tests whether tabular SHAP and LIME explanations behave
+faithfully and reproducibly under perturbation, repeated runs, and subgroup
+changes.**
 
-> Post-hoc explanations are easy to produce and easy to over-trust. **explaintrust** asks the question most XAI tooling ignores: *"SHAP/LIME gave me a feature attribution — but can I trust it?"*
+It scores faithfulness, sensitivity, and run-to-run stability. Differences
+between explainers and across subgroups remain visible as descriptive evidence;
+they do not silently become quality labels. A passing report means that the
+configured checks found no failure, not that an explanation is true or causal.
 
-It checks whether explanations are **faithful and stable**, and separately
-describes **differences between methods and across selected subgroups**.
+**[Live demo · 在线演示](https://lvcheer-explaintrust-appstreamlit-app-x7k48h.streamlit.app/)** — Run the five-step workflow in English or Chinese without installing anything.
 
-Built as a **brand / research artifact**: the kernel is a documented, citable Python library. Published metrics retain their stated definitions; project-specific diagnostics are labeled as adaptations rather than universal tests.
+## 60-second start
 
----
+Until the public PyPI package is verified, install the reviewed repository
+version directly:
 
-## What it measures
+```bash
+git clone https://github.com/lvcheer/explaintrust.git
+cd explaintrust
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install -e .
+python examples/demo.py
+```
 
-| Family | Metric | Explainer it's valid for | Direction |
+The seeded demo trains a model, computes SHAP and LIME explanations, evaluates
+all metric families, and prints a report. For the interactive app, install
+with `python -m pip install -e ".[app]"` and run
+`streamlit run app/streamlit_app.py`.
+
+## Example trust report
+
+An abridged headless-demo report looks like this:
+
+```text
+TRUST VERDICT: MIXED — investigate before trusting
+good  SHAP removal-effect correlation
+good  SHAP comprehensiveness (top-k vs random)
+bad   LIME local fidelity (infidelity, normalized)
+good  Max sensitivity
+...   method and subgroup diagnostics shown separately
+```
+
+The overall verdict uses scored checks only. The full report also records metric
+roles, unavailable or inapplicable checks, decision-policy defaults, explainer
+context, and a per-feature comparison table.
+
+## What it measures — and what it does not
+
+| Family | Metrics | Role in the report | Boundary |
 |---|---|---|---|
-| Faithfulness | removal-effect correlation | SHAP (contribution) | higher |
-| Faithfulness | comprehensiveness ratio (top-k vs random) | SHAP (contribution) | higher (> 1 = not noise) |
-| Faithfulness | infidelity (normalized local linear surrogate) | LIME (gradient) | lower |
-| Robustness | max-sensitivity | any | lower |
-| Reproducibility | run-to-run rank / sign / top-k stability | stochastic explainers | higher |
-| Consistency | SHAP vs LIME sign/rank/top-k disagreement | cross-explainer | — |
-| Consistency | SHAP vs LIME magnitude disagreement (per-feature gap) | cross-explainer | lower |
-| Subgroup consistency | cross-segment rank stability & top-k flip rate | any | higher / lower |
+| Faithfulness | SHAP removal-effect correlation and top-k-vs-random comprehensiveness; normalized LIME infidelity | scored | Match contribution metrics to SHAP and gradient metrics to LIME. Comprehensiveness `> 1` is only a not-noise gate. |
+| Robustness | max-sensitivity | scored | Lower is better within the recorded perturbation neighbourhood. |
+| Reproducibility | run-to-run top-k rank and sign stability | scored | Applies to repeated stochastic explanations. |
+| Method comparison | SHAP–LIME sign, rank, top-k, and magnitude differences | descriptive | Agreement is not evidence that either method is correct. |
+| Subgroup comparison | cross-segment rank stability and top-k flip rate | descriptive | Heterogeneity may reflect real model behaviour; it is not automatically a failure. |
 
-**The output is a "trust report"**: scored faithfulness, sensitivity and
-reproducibility checks (good / warn / bad), descriptive method/subgroup
-diagnostics, an overall conclusion about the scored checks, and a per-feature
-comparison table. Agreement directions in the table above describe similarity,
-not a quality ordering for explanations.
+`DEFAULT_THRESHOLDS` contains six versioned decision-policy defaults, not
+universally calibrated cut-offs. Unsupported thresholds for descriptive metrics
+are rejected explicitly.
 
-Descriptive diagnostics retain their values without trust thresholds. Even large
-differences do not automatically fail the overall report; missing descriptive
-values are listed separately. JSON includes each metric's `role` and
-`included_in_overall`, plus a versioned `decision_policy` in context.
-`DEFAULT_THRESHOLDS` now contains only the six scored checks. Overrides for
-`disagreement_*`, `dist_rank`, or `dist_flip` are rejected rather than silently
-re-enabling unsupported quality scoring.
+## What the refreshed benchmarks show
+
+- In controlled synthetic regimes, exactly three scored metrics met the held-out
+  criterion of at least 0.80 good-pass and 0.75 stress-flag rates: SHAP
+  removal-effect correlation, LIME infidelity, and max-sensitivity. The other
+  diagnostics did not earn new quality thresholds.
+- Across 48 Adult/Diabetes run aggregates, the pooled top-k stability median was
+  `0.875`. Restricting the same refreshed raw runs to the first explained
+  instance restores `1.000`; evaluating four sampled instances exposed
+  variability hidden by the earlier first-instance summary.
+- Comprehensiveness is heavy-tailed: its pooled median is `20.67`, while P90 is
+  `8.112e+09`. Near-zero random-removal denominators make it useful as a
+  not-noise gate, not as a graded effect size or a way to rank datasets.
+
+These are Adult/Diabetes tabular results, not universal validation. Several
+protocol corrections changed together, and the historical baseline has no raw
+runs, so the refresh cannot isolate individual causes or prove that explanation
+quality improved. See the [synthetic study](experiments/README.md),
+[real-data benchmark](experiments/benchmark_README.md), and
+[change report](experiments/results/real/change_report.md) for the complete
+protocol, tables, negative findings, and one explicitly uncomputed subgroup run.
 
 ---
 
-## Why the details matter (the point of this project)
+## Why the details matter
 
-A naive "run SHAP and show a plot" tool gets several things subtly wrong. This
-library is opinionated about them on purpose:
+A SHAP plot alone leaves several technical choices unresolved:
 
 1. **Output space.** SHAP's native output depends on the model and explainer:
    sklearn random forests explain probability, while gradient boosting commonly
@@ -64,36 +113,12 @@ library is opinionated about them on purpose:
 4. **Sign stability only over features that matter.** Averaging sign flips over
    all features lets near-zero noise weights dominate the number.
 
-These are exactly the things a reviewer (or a downstream user) would catch —
-and the reason a PhD in explainable ML has an advantage a generic vibe-coder
-does not.
+These choices keep the report's assumptions inspectable instead of hiding them
+behind a single reliability score.
 
 ---
 
-## Install & run
-
-After the first PyPI release, install the library with:
-
-```bash
-pip install explaintrust
-```
-
-To run the interactive app or contribute, clone the repository and install it
-in editable mode:
-
-```bash
-git clone https://github.com/lvcheer/explaintrust.git
-cd explaintrust
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -e ".[app]"          # ".[app]" also pulls streamlit + plotly
-```
-
-### Headless demo (fastest way to see the report)
-
-```bash
-python3 examples/demo.py
-```
+## Interactive app and library API
 
 ### Interactive app
 
@@ -221,69 +246,87 @@ report means that no configured check failed; it is not a certificate of truth.
 
 ## 中文说明
 
-**[打开在线演示](https://lvcheer-explaintrust-appstreamlit-app-x7k48h.streamlit.app/)**：无需本地安装，即可体验数据选择／上传、数据划分、模型训练、预测解释和解释质量分析。侧边栏支持中英文切换。
+**explaintrust 用扰动、重复运行和子群变化来检验表格数据上的 SHAP/LIME 解释是否忠实、稳定且可复现。**
 
-> 事后解释（post-hoc explanation）很容易生成，也很容易被过度信任。**explaintrust** 追问的是大多数 XAI 工具忽略的问题：*“SHAP/LIME 给了我一组特征归因——但我能相信它吗？”*
+忠实性、敏感度和跨运行稳定性参与评分；解释器之间及不同子群之间的差异单独作为描述性证据，
+不会被悄悄转换成质量标签。“通过”只表示当前配置没有检出失败，不代表解释真实或具有因果意义。
 
-本项目检查解释是否**忠实（faithful）、稳定（stable）**，并独立描述**不同解释方法之间的差异与子群异质性**。
+**[打开在线演示](https://lvcheer-explaintrust-appstreamlit-app-x7k48h.streamlit.app/)**：无需安装，可直接体验支持中英文的五步分析流程。
 
-本项目内核是一个有文档、可引用的 Python 库。已有论文定义的指标保持其定义；项目自定义或改造的诊断量会明确标注，不将其包装成普适检验。外壳是一个轻量的交互式 Demo。
+### 60 秒运行
 
-### 它测量什么
-
-| 类别 | 指标 | 适用的解释器 | 方向 |
-|---|---|---|---|
-| 忠实性 | 移除效应相关（removal-effect correlation） | SHAP（贡献） | 越高越好 |
-| 忠实性 | 完备性比（comprehensiveness ratio，top-k vs 随机） | SHAP（贡献） | 越高越好（> 1 说明非噪声） |
-| 忠实性 | 不忠实度（infidelity，局部线性代理） | LIME（梯度） | 越低越好 |
-| 鲁棒性 | 最大敏感度（max-sensitivity） | 任意 | 越低越好 |
-| 可复现性 | 多次运行的 rank / sign / top-k 稳定性 | 随机性解释器 | 越高越好 |
-| 一致性 | SHAP 与 LIME 的 sign/rank/top-k 分歧 | 跨解释器 | — |
-| 子群一致性 | 跨分段的 rank 稳定性与 top-k 翻转率 | 任意 | 越高 / 越低 |
-
-**输出是一份“信任报告”**：忠实性、敏感度和重复运行稳定性的评分（good / warn / bad），
-独立的方法间差异与子群异质性诊断，以及逐特征比较表。总体结论只汇总参与评分的检查。
-方法间分歧或子群差异即使很大，也不会据此自动判为不可靠；这些描述性指标缺失时会单独注明。
-上表中的一致性方向表示相似程度，不代表解释质量的高低。
-
-JSON 保留指标的 `role`、`included_in_overall` 及判定策略标识。`DEFAULT_THRESHOLDS`
-现在仅包含六项评分检查；对 `disagreement_*`、`dist_rank`、`dist_flip` 的旧阈值覆盖会明确报错，
-不会静默恢复缺乏依据的质量判定。
-
-### 为什么这些细节重要（本项目的核心）
-
-一个“跑一下 SHAP 然后画张图”的工具会在几处地方微妙地出错。本库在如下地方展开讨论：
-
-1. **输出空间**。SHAP 的原生输出空间取决于模型和解释器：例如 sklearn Random Forest 通常解释概率，而 Gradient Boosting 通常解释 raw margin。本库会检测该空间，并让 LIME 与扰动指标使用相同的标量输出。
-2. **贡献 vs 梯度**。SHAP 值是 *贡献*（`Σ φ_i ≈ f(x) − E[f]`）；LIME 权重是 *斜率*（`f(x̃) ≈ f(x) + φ·Δx`）。把 SHAP 值喂给标准的 infidelity 公式是一个范畴错误——infidelity 适用于梯度解释，消融类指标适用于 SHAP。我们把这两个家族分开，并给每个指标标注适用对象。
-3. **跨解释器比较需要兼容单位**。本库先把 LIME 的标准化坐标系数还原到原始特征单位，再用 `to_contribution_scale` 构造相对背景的局部近似。这是诊断性比较，并不意味着 LIME 与 SHAP 在理论上完全等价。
-4. **符号稳定性只对“有分量的特征”计算**。对所有特征平均符号翻转，会让接近零的噪声权重主导这个数字。
-
-这些正是审稿人（或下游用户）会发现的点——也是“解释性机器学习方向的博士”相对泛泛的开发者所具备的优势所在。
-
-### 安装与运行
-
-首次发布到 PyPI 后，可直接安装 Python 库：
-
-```bash
-pip install explaintrust
-```
-
-如需运行交互应用或参与开发，请克隆仓库并以可编辑模式安装：
+在公开 PyPI 安装源完成验证前，请直接安装经过审查的仓库版本：
 
 ```bash
 git clone https://github.com/lvcheer/explaintrust.git
 cd explaintrust
 python3 -m venv .venv
 source .venv/bin/activate
-pip install -e ".[app]"          # ".[app]" 会额外拉取 streamlit + plotly
+python -m pip install -e .
+python examples/demo.py
 ```
 
-#### 无界面 Demo（最快看到报告）
+这个固定随机种子的 Demo 会训练模型、生成 SHAP/LIME 解释、计算全部指标并打印报告。
+如需本地交互界面，请运行 `python -m pip install -e ".[app]"`，然后执行
+`streamlit run app/streamlit_app.py`。
 
-```bash
-python3 examples/demo.py
+### 报告示例
+
+无界面 Demo 的精简输出如下：
+
+```text
+TRUST VERDICT: MIXED — investigate before trusting
+good  SHAP removal-effect correlation
+good  SHAP comprehensiveness (top-k vs random)
+bad   LIME local fidelity (infidelity, normalized)
+good  Max sensitivity
+...   方法间与子群诊断单独展示
 ```
+
+总体结论只汇总评分项。完整报告还会记录指标角色、缺失或不适用的检查、判定策略、解释器上下文，
+以及逐特征比较表。
+
+### 测量内容与边界
+
+| 类别 | 指标 | 报告角色 | 边界 |
+|---|---|---|---|
+| 忠实性 | SHAP 移除效应相关、top-k 与随机移除的完备性比；归一化 LIME infidelity | 评分 | 贡献类指标用于 SHAP，梯度类指标用于 LIME；完备性比 `> 1` 只是一道“非噪声”门槛。 |
+| 鲁棒性 | 最大敏感度（max-sensitivity） | 评分 | 在记录的扰动邻域内越低越好。 |
+| 可复现性 | 多次运行的 top-k 排名与符号稳定性 | 评分 | 适用于带随机性的重复解释。 |
+| 方法比较 | SHAP–LIME 的符号、排名、top-k 与幅度差异 | 描述 | 一致不代表任一方法正确。 |
+| 子群比较 | 跨分段排名稳定性与 top-k 翻转率 | 描述 | 异质性可能来自真实的模型行为，不会自动判为失败。 |
+
+`DEFAULT_THRESHOLDS` 中的六组边界是版本化判定策略，不是普适校准阈值。系统会明确拒绝为描述性指标设置质量阈值。
+
+### 刷新后的 benchmark 说明了什么
+
+- 在受控合成实验中，恰有三项评分指标达到留出集标准（正常条件通过率至少 0.80，压力条件
+  标记率至少 0.75）：SHAP 移除效应相关、LIME infidelity 和最大敏感度。其他诊断量没有因此
+  获得新的质量阈值。
+- Adult/Diabetes 的 48 个运行汇总中，top-k 稳定性的合并中位数为 `0.875`。若把同一批刷新后
+  的原始结果限制为每次运行的第一个解释样本，中位数会恢复到 `1.000`；四个抽样实例的覆盖
+  暴露了旧汇总没有显示的波动。
+- 完备性比分布重尾：合并中位数为 `20.67`，P90 为 `8.112e+09`。随机移除效应接近零时，
+  比值会急剧放大，因此它适合作为“非噪声”门槛，不适合作为连续效应量或数据集排名依据。
+
+这些结果只覆盖 Adult/Diabetes 表格数据，并非普适验证。多项协议修正同时发生，而历史基线没有
+原始运行记录，因此无法分别估计每项修正的影响，也不能据此声称解释质量提高。完整协议、表格、
+负面发现及一项明确未计算的 Adult 子群结果见[合成实验](experiments/README.md)、
+[真实数据 benchmark](experiments/benchmark_README.md)和
+[变更报告](experiments/results/real/change_report.md)。
+
+### 为什么这些细节重要
+
+一张 SHAP 图不会自动解决以下技术问题：
+
+1. **输出空间**。SHAP 的原生输出空间取决于模型和解释器：例如 sklearn Random Forest 通常解释概率，而 Gradient Boosting 通常解释 raw margin。本库会检测该空间，并让 LIME 与扰动指标使用相同的标量输出。
+2. **贡献 vs 梯度**。SHAP 值是 *贡献*（`Σ φ_i ≈ f(x) − E[f]`）；LIME 权重是 *斜率*（`f(x̃) ≈ f(x) + φ·Δx`）。把 SHAP 值喂给标准的 infidelity 公式是一个范畴错误——infidelity 适用于梯度解释，消融类指标适用于 SHAP。我们把这两个家族分开，并给每个指标标注适用对象。
+3. **跨解释器比较需要兼容单位**。本库先把 LIME 的标准化坐标系数还原到原始特征单位，再用 `to_contribution_scale` 构造相对背景的局部近似。这是诊断性比较，并不意味着 LIME 与 SHAP 在理论上完全等价。
+4. **符号稳定性只对“有分量的特征”计算**。对所有特征平均符号翻转，会让接近零的噪声权重主导这个数字。
+
+这些处理把报告所依赖的假设留在明面上，而不是压缩成一个看似确定的“可靠性分数”。
+
+### 交互应用与库 API
 
 #### 交互式应用
 

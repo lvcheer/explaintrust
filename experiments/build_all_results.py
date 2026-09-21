@@ -277,6 +277,50 @@ def _synthetic_findings_current(summary: dict, text: str) -> bool:
     }
 
 
+def _root_readme_findings_current(
+    synthetic: dict, real: dict, change_report: str, text: str
+) -> bool:
+    separating = {
+        metric["name"]
+        for metric in synthetic["metrics"]
+        if metric["good_pass_rate"] >= 0.8 and metric["bad_flag_rate"] >= 0.75
+    }
+    metrics = real["metrics"]
+    stability = metrics["stability_rank_topk"]
+    comprehensiveness = metrics["comprehensiveness"]
+    total = stability["run_counts"]["total"]
+    p90 = _format_number(comprehensiveness["pooled_p90"])
+    normalized = " ".join(text.split())
+    normalized_change_report = " ".join(change_report.split())
+    expected = [
+        "SHAP removal-effect correlation, LIME infidelity, and max-sensitivity",
+        "SHAP 移除效应相关、LIME infidelity 和最大敏感度",
+        f"Across {total} Adult/Diabetes run aggregates",
+        f"Adult/Diabetes 的 {total} 个运行汇总中",
+        f"pooled top-k stability median was `{stability['pooled_median']:.3f}`",
+        f"top-k 稳定性的合并中位数为 `{stability['pooled_median']:.3f}`",
+        (
+            f"pooled median is `{comprehensiveness['pooled_median']:.2f}`, "
+            f"while P90 is `{p90}`"
+        ),
+        (
+            f"合并中位数为 `{comprehensiveness['pooled_median']:.2f}`，"
+            f"P90 为 `{p90}`"
+        ),
+    ]
+    return (
+        all(value in normalized for value in expected)
+        and separating == {
+            "SHAP removal-effect correlation",
+            "LIME local fidelity (infidelity)",
+            "Max sensitivity",
+        }
+        and "gives a median of 1.0000" in normalized_change_report
+        and "restores `1.000`" in normalized
+        and "中位数会恢复到 `1.000`" in normalized
+    )
+
+
 def _real_findings_current(summary: dict, change_report: str, text: str) -> bool:
     metrics = summary["metrics"]
     expected = [
@@ -362,7 +406,15 @@ def _manual_claims_stale(mapping: dict, root: Path) -> list[str]:
                 mark(target)
 
         kind = claim.get("check_kind")
-        if kind == "synthetic_findings":
+        if kind == "root_readme_findings":
+            synthetic = _load_json(root / "experiments/results/synthetic/summary.json")
+            real = _load_json(root / "experiments/results/real/summary.json")
+            change_report = (root / "experiments/results/real/change_report.md").read_text()
+            if not _root_readme_findings_current(
+                synthetic, real, change_report, texts["README.md"]
+            ):
+                mark("README.md")
+        elif kind == "synthetic_findings":
             summary = _load_json(root / "experiments/results/synthetic/summary.json")
             if not _synthetic_findings_current(summary, texts["experiments/README.md"]):
                 mark("experiments/README.md")

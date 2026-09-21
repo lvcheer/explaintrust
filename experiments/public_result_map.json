@@ -156,6 +156,7 @@
       "source_ids": ["synthetic_summary", "real_summary", "real_change_report"],
       "targets": ["README.md"],
       "implementation_status": "implemented",
+      "check_kind": "root_readme_findings",
       "required_text": {
         "README.md": [
           "Reviewed synthetic calibration and real-data benchmark",
@@ -170,7 +171,7 @@
           "历史实验表格仍待重算。"
         ]
       },
-      "rule": "English and Chinese refresh-status wording must agree and must not say reviewed experiment tables await regeneration."
+      "rule": "English and Chinese refresh status and headline findings must agree with the reviewed summaries and must not say experiment tables await regeneration."
     },
     {
       "id": "experiment_findings",
