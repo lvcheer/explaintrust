@@ -2,7 +2,7 @@
 
 ## Testing post-hoc explanations before acting on them
 
-Version 0.1.0 | Technical brief | 21 September 2026
+Version 0.2.0rc1 | Technical brief | 21 September 2026
 
 explaintrust is a Python toolkit for evaluating numeric tabular SHAP and LIME
 explanations. It asks whether an explanation tracks the model, remains stable
@@ -134,6 +134,6 @@ python examples/demo.py
 
 ## Citation
 
-lvcheer (2026). *explaintrust* (version 0.1.0). MIT License.
+lvcheer (2026). *explaintrust* (version 0.2.0rc1). MIT License.
 https://github.com/lvcheer/explaintrust. Machine-readable citation metadata is
 provided in `CITATION.cff`.

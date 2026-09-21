@@ -6,7 +6,9 @@ All notable changes are recorded here. This project follows
 
 ## [Unreleased]
 
-### Fixed
+## [0.2.0rc1] - 2026-09-21
+
+### Changed
 
 - Added classification/regression performance metrics, confusion matrices and ROC
   curves, model-specific controls including an MLP, configurable quality-analysis
@@ -119,5 +121,6 @@ All notable changes are recorded here. This project follows
 
 - Removed unsafe pickle/joblib model upload from the Streamlit application.
 
-[Unreleased]: https://github.com/lvcheer/explaintrust/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/lvcheer/explaintrust/compare/v0.2.0rc1...HEAD
+[0.2.0rc1]: https://github.com/lvcheer/explaintrust/compare/v0.1.0...v0.2.0rc1
 [0.1.0]: https://github.com/lvcheer/explaintrust/releases/tag/v0.1.0

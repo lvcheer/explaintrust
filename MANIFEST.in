@@ -1,5 +1,7 @@
 include CHANGELOG.md
 include CITATION.cff
+include RELEASE_NOTES.md
+include THIRD_PARTY_LICENSES.md
 include examples/demo.py
 include docs/explaintrust-technical-brief.md
 include docs/build_technical_brief.py
