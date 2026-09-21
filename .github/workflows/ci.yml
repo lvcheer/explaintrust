@@ -33,6 +33,43 @@ jobs:
       - run: python -m pip install build twine
       - run: python -m build
       - run: python -m twine check dist/*
+      - run: python -m venv "${{ runner.temp }}/explaintrust-wheel-smoke"
+      - run: ${{ runner.temp }}/explaintrust-wheel-smoke/bin/python -m pip install dist/*.whl
+      - run: ${{ runner.temp }}/explaintrust-wheel-smoke/bin/python -m pip check
+      - name: Smoke test installed wheel
+        working-directory: ${{ runner.temp }}
+        run: |
+          explaintrust-wheel-smoke/bin/python - <<'PY'
+          from importlib.metadata import version
+          from pathlib import Path
+
+          import explaintrust
+          from explaintrust import build_trust_report
+
+          install_path = Path(explaintrust.__file__).resolve()
+          assert "site-packages" in install_path.parts, install_path
+          assert explaintrust.__version__ == version("explaintrust")
+
+          report = build_trust_report(
+              removal_corr=0.8,
+              comprehensiveness=2.0,
+              lime_infidelity=0.1,
+              sensitivity_value=0.1,
+              stability={"topk_rank_corr": 0.9, "sign_agreement": 0.9},
+              disagreement={
+                  "sign_disagreement": 0.1,
+                  "topk_rank_corr": 0.8,
+                  "topk_overlap": 0.8,
+                  "magnitude_disagreement": 0.2,
+              },
+              distribution={"rank_corr": 0.8, "topk_flip_rate": 0.0},
+              top_k=2,
+              n_features=4,
+          )
+          assert report.to_dict()["overall"] == report.overall
+          report.to_json()
+          print(explaintrust.__version__, install_path, report.overall)
+          PY
       - uses: actions/upload-artifact@v4
         with:
           name: python-distributions

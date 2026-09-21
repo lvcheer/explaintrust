@@ -60,7 +60,9 @@ All notable changes are recorded here. This project follows
   contributor guidance and the release checklist now run the same consistency
   contract.
 - Source distributions now include the headless reference demo alongside the
-  README, license, changelog, citation metadata and build configuration.
+  README, license, changelog, citation metadata and build configuration. Package
+  CI clean-installs the built wheel and verifies its import path, metadata,
+  dependencies and a serializable minimal trust report.
 - Binary `class_index=0` now selects the class-0 decision margin and native
   single-output SHAP attributions, with matching LIME directions. Per-class
   SHAP outputs and already-selected KernelSHAP outputs are not negated again.
