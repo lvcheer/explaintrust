@@ -11,10 +11,9 @@ description: >
 bibliography: references.bib
 ---
 
-> **Version note (2026-09-05):** The figures and numerical examples below are
-> historical snapshots. The library now aligns the full SHAP/LIME background;
-> these examples have not yet been regenerated to evaluate that updated protocol.
-> Method disagreement and subgroup heterogeneity are now descriptive diagnostics,
+> **Version note (2026-09-21):** The figures and numerical examples below were
+> regenerated together under the full-background SHAP/LIME protocol. Method
+> disagreement and subgroup heterogeneity remain descriptive diagnostics and are
 > excluded from the library's overall quality-check verdict.
 
 ::: {.lead}
@@ -75,12 +74,13 @@ Two cheap checks expose the gap:
   more than removing k random ones.
 
 On the collinear dataset used throughout this article, the model's SHAP
-explanations score a **removal-effect correlation of ≈ 0.59** and a
-**comprehensiveness ratio of ≈ 5.1** — removing the top-3 features moves the
-prediction roughly five times more than removing 3 random features. This ratio
+explanations score a **removal-effect correlation of ≈ <!-- BEGIN AUTO:faithfulness.removal_effect_correlation -->0.69<!-- END AUTO:faithfulness.removal_effect_correlation -->** and a
+**comprehensiveness ratio of ≈ <!-- BEGIN AUTO:faithfulness.comprehensiveness_ratio -->3.20<!-- END AUTO:faithfulness.comprehensiveness_ratio -->** — removing the top-3 features moves the
+prediction roughly three times more than removing 3 random features. This ratio
 is a tabular adaptation inspired by comprehensiveness-style ablation
 [@deyoung2020eraser], not the original ERASER metric verbatim.
-Those are healthy numbers. They are also *earned*, not assumed: the same model
+These averages are encouraging, but they are not a certificate. They are also
+*earned*, not assumed: the same model
 could just as easily have produced a gorgeous summary plot with a removal
 correlation near zero, and the plot would look identical. "Good" here is not a
 property of how the chart looks, but of how the explanation behaves under
@@ -148,9 +148,11 @@ A slope and a contribution are different quantities with different units, and
 feeding one into a metric designed for the other is a category error
 [@yeh2019infidelity]. Matching the model output and rescaling LIME's slopes onto
 an approximate contribution scale is what the toggle above illustrates. In
-this dataset the rank correlation changes from **0.74 to 0.75**, while the
-sign-disagreement rate drops from 0.54 to 0.29. The small rank change is itself
-informative: unit correction matters here mainly for direction, not ordering.
+this dataset the rank correlation changes from
+**<!-- BEGIN AUTO:agreement.before_rank_corr -->0.68<!-- END AUTO:agreement.before_rank_corr --> to <!-- BEGIN AUTO:agreement.after_rank_corr -->0.75<!-- END AUTO:agreement.after_rank_corr -->**, while the
+sign-disagreement rate drops from
+<!-- BEGIN AUTO:agreement.before_sign_disagreement -->0.54<!-- END AUTO:agreement.before_sign_disagreement --> to <!-- BEGIN AUTO:agreement.after_sign_disagreement -->0.26<!-- END AUTO:agreement.after_sign_disagreement -->. The rank and sign changes show why
+unit alignment must precede interpretation of residual disagreement.
 
 ::: {.quote}
 Some apparent disagreement is a measurement artifact. Align the estimands and
@@ -166,8 +168,8 @@ coin flips. Stochastic methods such as KernelSHAP and LIME sample perturbations
 to approximate their answer, so they *will* vary from run to run; the only
 question is how much. We measure this with run-to-run **rank correlation**,
 **sign agreement**, and **top-k overlap**. On the current example, LIME's
-all-feature rank correlation is ≈ 0.72, its top-3 rank correlation is 1.0, and
-its sign agreement is ≈ 0.67. Those views answer different questions; none is
+all-feature rank correlation is ≈ <!-- BEGIN AUTO:stability.rank_corr -->0.73<!-- END AUTO:stability.rank_corr -->, its top-3 rank correlation is <!-- BEGIN AUTO:stability.topk_rank_corr -->1.00<!-- END AUTO:stability.topk_rank_corr -->, and
+its sign agreement is <!-- BEGIN AUTO:stability.sign_agreement -->1.00<!-- END AUTO:stability.sign_agreement -->. Those views answer different questions; none is
 enough on its own to justify action.
 
 TreeSHAP, by contrast, is deterministic and therefore trivially stable. Watch
@@ -199,12 +201,11 @@ enter that mechanism. The remaining features are pure noise. A predictive model
 can nevertheless use `x2`, so a faithful model explanation may correctly assign
 it credit without establishing that `x2` has a causal effect.
 
-![Collinearity makes LIME credit a non-causal feature (x2), while SHAP resists it a little better.](figures/endpoints.png)
+![Collinearity shifts model-level credit toward the non-causal proxy x2.](figures/endpoints.png)
 
 The two panels show the same analysis at two levels of collinearity. On the left
-(correlation `ρ ≈ 0`), both methods assign little model-level importance to
-`x2`. On the right (`ρ ≈ 0.85`), LIME assigns the proxy more credit, in some
-cases nearly as much as `x0`; SHAP is less affected in this particular setup.
+(empirical correlation `r = <!-- BEGIN AUTO:endpoints.profiles.clean.empirical_x0_x2_correlation -->0.05<!-- END AUTO:endpoints.profiles.clean.empirical_x0_x2_correlation -->`), both methods assign little model-level importance to
+`x2`. On the right (`r = <!-- BEGIN AUTO:endpoints.profiles.collinear.empirical_x0_x2_correlation -->0.86<!-- END AUTO:endpoints.profiles.collinear.empirical_x0_x2_correlation -->`), both explainers assign the proxy more model-level credit.
 This is not proof that either method has recovered causality. It shows that the
 model's predictive reliance can be redistributed among correlated variables.
 

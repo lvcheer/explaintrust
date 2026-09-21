@@ -30,7 +30,8 @@
     {
       "id": "article_results",
       "path": "article/figures/article_results.json",
-      "status": "planned",
+      "status": "canonical",
+      "schema_version": 1,
       "producer": "article/scripts/generate_figures.py"
     }
   ],
@@ -106,7 +107,7 @@
       "source_ids": ["article_results"],
       "target": "article/index.qmd",
       "mode": "templated_claims",
-      "implementation_status": "planned",
+      "implementation_status": "implemented",
       "renderer": "article_numeric_claims",
       "claim_ids": [
         "faithfulness.removal_effect_correlation",
@@ -117,7 +118,9 @@
         "agreement.after_sign_disagreement",
         "stability.rank_corr",
         "stability.topk_rank_corr",
-        "stability.sign_agreement"
+        "stability.sign_agreement",
+        "endpoints.profiles.clean.empirical_x0_x2_correlation",
+        "endpoints.profiles.collinear.empirical_x0_x2_correlation"
       ]
     },
     {
@@ -125,7 +128,7 @@
       "source_ids": ["article_results"],
       "target": "article/figures/conversion.json",
       "mode": "json_projection",
-      "implementation_status": "planned",
+      "implementation_status": "implemented",
       "renderer": "article_conversion_data"
     },
     {
@@ -133,7 +136,8 @@
       "source_ids": ["article_results"],
       "target": "article/figures/conversion_flip.png",
       "mode": "binary_figure",
-      "implementation_status": "planned",
+      "implementation_status": "implemented",
+      "dimensions": [900, 600],
       "renderer": "article_conversion_figure"
     },
     {
@@ -141,7 +145,8 @@
       "source_ids": ["article_results"],
       "target": "article/figures/endpoints.png",
       "mode": "binary_figure",
-      "implementation_status": "planned",
+      "implementation_status": "implemented",
+      "dimensions": [1650, 600],
       "renderer": "article_endpoints_figure"
     }
   ],

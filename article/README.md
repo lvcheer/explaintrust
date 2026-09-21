@@ -4,10 +4,10 @@ An explorable (interactive) article built with Quarto. It is the *public-facing*
 half of the explaintrust project. The library and experiment outputs are the
 reproducible technical artifacts; neither is peer reviewed yet.
 
-**Pending numerical refresh (2026-09-05).** Figure generation now supplies the
-same full background to SHAP and LIME and records SHAP context. Existing figures,
-`conversion.json`, and article numbers remain snapshots of the earlier protocol.
-Regenerate them and reconcile the prose before publishing the updated method.
+**Numerical refresh completed (2026-09-21).** The canonical
+`figures/article_results.json` bundle records the seeded configuration, package
+versions, SHAP context, per-instance measurements, and article summaries. The
+article claims, compatibility JSON, and figures are generated from that bundle.
 
 ## One-time setup
 
@@ -18,8 +18,15 @@ Regenerate them and reconcile the prose before publishing the updated method.
    python3 article/scripts/generate_figures.py
    ```
 
-   This writes `article/figures/conversion.json` (the data behind the
-   centerpiece interactive), `conversion_flip.png`, and `endpoints.png`.
+   This writes `article/figures/article_results.json`, then updates the article
+   claims, `conversion.json` (the data behind the centerpiece interactive),
+   `conversion_flip.png`, and `endpoints.png` from that one result bundle.
+
+3. Verify that all tracked outputs match their canonical sources:
+
+   ```bash
+   python -m experiments.build_all_results --check
+   ```
 
 ## Preview / render
 
@@ -43,8 +50,9 @@ the `repo-url` / links in `index.qmd` to your own repo, then publish the
 
 The article is a complete first draft. Before publishing an update:
 
-1. Regenerate figures after any explainer or metric change.
+1. Regenerate the result bundle and figures after any explainer or metric change.
 2. Verify the OJS toggle renders in `quarto preview` (it loads
    `figures/conversion.json`).
-3. Check every numerical claim against the regenerated JSON/demo output.
+3. Run `python -m experiments.build_all_results --check` to verify every
+   generated numerical claim and artifact.
 4. Render the site and check desktop and mobile layouts.

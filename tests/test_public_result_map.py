@@ -56,6 +56,15 @@ def test_generated_markdown_markers_are_paired_and_unique():
         markers.extend([target["start_marker"], target["end_marker"]])
     assert len(markers) == len(set(markers))
 
+    article_target = next(
+        target for target in mapping["generated_targets"]
+        if target["mode"] == "templated_claims"
+    )
+    article = (ROOT / article_target["target"]).read_text()
+    for claim_id in article_target["claim_ids"]:
+        assert article.count(f"<!-- BEGIN AUTO:{claim_id} -->") == 1
+        assert article.count(f"<!-- END AUTO:{claim_id} -->") == 1
+
 
 def test_historical_baselines_are_excluded_from_generation():
     mapping = json.loads(MAP_PATH.read_text())

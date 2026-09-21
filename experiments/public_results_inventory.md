@@ -5,9 +5,9 @@ Audit date: 2026-09-21.
 The source-to-target contract is frozen in
 `experiments/public_result_map.json` (schema 1). The
 `python -m experiments.build_all_results` entry point consumes that map in
-write and check modes. It currently controls the two benchmark Markdown tables;
-article artifacts and manual-claim checks remain planned. This inventory
-explains the boundary in human-readable form.
+write and check modes. It currently controls the two benchmark Markdown tables
+and all article-derived claims, data, and figures; manual-claim checks remain
+planned. This inventory explains the boundary in human-readable form.
 
 This inventory covers every tracked source that stores, renders, or makes a
 reader-facing claim about experiment results. It distinguishes the two reviewed
@@ -29,7 +29,8 @@ example.
 | `experiments/results/real/change_report.md` | Historical comparison | Prespecified comparison plus reviewed technical explanations for all material changes | Canonical interpretation source; do not infer causal explanations from the summary alone. |
 | `experiments/calibration.json` | Synthetic calibration | Historical thresholds, held-out medians, pass rates, and flag rates | Preserve as the immutable pre-refresh baseline; never use it to generate refreshed claims. |
 | `experiments/benchmark_results.json` | Adult/Diabetes benchmark | Historical dataset/model/seed summaries from the earlier split and explanation protocol | Preserve as the immutable pre-refresh comparison baseline; never overwrite it with refreshed output. |
-| `article/figures/conversion.json` | Article-only synthetic example | Per-feature attributions plus before/after rank-correlation and sign-disagreement values | Regenerate with `article/scripts/generate_figures.py`. Keep separate from both benchmark result families. |
+| `article/figures/article_results.json` | Article-only synthetic example | Canonical seeded configuration, environment, per-instance measurements, article summaries, OJS source data, and endpoint profiles | Regenerate with `article/scripts/generate_figures.py`. Keep separate from both benchmark result families. |
+| `article/figures/conversion.json` | Article-only synthetic example | Compatibility projection for the OJS interactive | Generate from `article_results.json`; never edit independently. |
 
 The two top-level experiment JSON files remain immutable historical baselines;
 the reviewed files below `experiments/results/` are the current experimental
@@ -39,20 +40,20 @@ sources. Article examples remain a third, separate result family.
 
 | Surface | Values or claims shown | Source that should control it | Required action |
 |---|---|---|---|
-| `experiments/README.md` — Results and Findings | Historical table and prose beside a reviewed synthetic summary | Refreshed synthetic summary | Generate only the results table; check surrounding qualitative and negative-result prose against the same summary. |
-| `experiments/benchmark_README.md` — Results, Findings, and Resolution | Historical table and prose beside a reviewed real-data bundle | Refreshed real-data summary and change report | Generate the table; retain protocol history and use the reviewed change report for interpretation. |
-| `article/index.qmd` — sections 1–4 | Removal correlation, comprehensiveness, method-agreement, sign-disagreement, stability, and collinearity example numbers | Article-only generated data plus explicitly saved outputs for article examples | Reconcile every number after regenerating the article examples. Do not source these claims from the Adult/Diabetes benchmark. |
+| `experiments/README.md` — Results and Findings | Generated refreshed table plus manually reviewed synthetic findings | Refreshed synthetic summary | Keep the table generated; check surrounding qualitative and negative-result prose against the same summary. |
+| `experiments/benchmark_README.md` — Results, Findings, and Resolution | Generated refreshed table plus manually reviewed real-data findings | Refreshed real-data summary and change report | Keep the table generated; retain protocol history and use the reviewed change report for interpretation. |
+| `article/index.qmd` — sections 1–4 | Removal correlation, comprehensiveness, method-agreement, sign-disagreement, stability, and collinearity example numbers | `article/figures/article_results.json` | Generate marked claims from the article bundle. Do not source these claims from the Adult/Diabetes benchmark. |
 | `README.md` — English and Chinese quickstart sections | No benchmark table; both language sections still state that historical experiment tables await regeneration | Reviewed synthetic and real-data bundle status | Keep this prose manual but make check mode reject stale or mismatched bilingual status wording. |
 | `explaintrust/report.py` — module documentation | Qualitative claim that three metrics separate engineered regimes while several do not | Refreshed synthetic summary | Recheck the claim after the synthetic rerun. Numeric defaults remain a decision policy, not fitted benchmark output. |
 | `CHANGELOG.md` — Unreleased | States that saved historical results require regeneration | Refresh completion and release history | Record completion, protocol changes, and non-comparability without copying a new result table into the changelog. |
-| `article/README.md` | States that article figures and numbers use the earlier protocol | Article-example regeneration status | Remove the pending-refresh notice only after figure generation and prose reconciliation succeed. |
+| `article/README.md` | Documents the completed numerical refresh and reproduction commands | Article-example regeneration status | Keep the status synchronized with the generated bundle and consistency check. |
 
 ## Figures and rendered outputs
 
 | Surface | Generator/source | Required action |
 |---|---|---|
-| `article/figures/conversion_flip.png` | `article/scripts/generate_figures.py`, using the same run that writes `conversion.json` | Regenerate and visually verify its displayed correlation values against `conversion.json`. |
-| `article/figures/endpoints.png` | `article/scripts/generate_figures.py`, separate clean/collinear synthetic profiles | Regenerate and visually verify labels, attribution scale, and empirical-correlation wording. |
+| `article/figures/conversion_flip.png` | `article_results.json` through `build_all_results` | Regenerate and visually verify its displayed correlation values against `conversion.json`. |
+| `article/figures/endpoints.png` | `article_results.json` through `build_all_results` | Regenerate and visually verify labels, mean-absolute attribution scale, and empirical-correlation wording. |
 | `article/_site/` | Quarto render of `article/index.qmd`; ignored by Git | Re-render for visual QA. It is a delivery artifact, not a canonical result source. |
 | Deployed article/GitHub Pages, if published | Published `article/_site/` | Publish only from the reviewed render tied to the result commit. |
 
@@ -76,10 +77,10 @@ numbers vary with the selected data, model, seed, and analysis budget.
 
 | Entry point | Output currently written or displayed |
 |---|---|
-| `python -m experiments.build_all_results [--check]` | Writes the synthetic and real-data Markdown table blocks, or checks them for source drift without modifying files. |
+| `python -m experiments.build_all_results [--check]` | Writes both benchmark tables and all article-derived claims/data/figures, or checks them for source drift without modifying files. |
 | `python -m experiments.calibrate_thresholds` | Validates the frozen config; preserves historical `calibration.json`; writes `experiments/results/synthetic/{raw_runs,summary,environment}.json`; and prints the synthetic result table. |
 | `python -m experiments.benchmark_real_data --n-explain 4` | Preserves historical `experiments/benchmark_results.json`; writes `experiments/results/real/{raw_runs,summary,environment}.json` plus `change_report.md`; and prints the real-data summary table. |
-| `python article/scripts/generate_figures.py` | Writes `conversion.json`, `conversion_flip.png`, and `endpoints.png`. |
+| `python article/scripts/generate_figures.py` | Runs the seeded article example, writes `article_results.json`, and refreshes every article-derived target through `build_all_results`. |
 | `quarto render article` | Builds the ignored `article/_site/` delivery artifact. |
 
 ## Frozen generation mapping
@@ -88,10 +89,10 @@ numbers vary with the selected data, model, seed, and analysis budget.
 |---|---|---|---|
 | `synthetic_results_table` | `results/synthetic/summary.json` | `experiments/README.md` | Generated Markdown block; findings remain reviewed prose. |
 | `real_results_table` | `results/real/summary.json` plus report policy | `experiments/benchmark_README.md` | Generated Markdown block; material-change explanations come from `change_report.md`. |
-| `article_numeric_claims` | planned `article_results.json` | `article/index.qmd` | Templated article-example claims, separate from both benchmarks. |
-| `article_conversion_data` | planned `article_results.json` | `article/figures/conversion.json` | Compatibility projection for the OJS interactive. |
-| `article_conversion_figure` | planned `article_results.json` | `conversion_flip.png` | Generated static figure. |
-| `article_endpoints_figure` | planned `article_results.json` | `endpoints.png` | Generated static figure. |
+| `article_numeric_claims` | `article_results.json` | `article/index.qmd` | Generated marked article-example claims, separate from both benchmarks. |
+| `article_conversion_data` | `article_results.json` | `article/figures/conversion.json` | Generated compatibility projection for the OJS interactive. |
+| `article_conversion_figure` | `article_results.json` | `conversion_flip.png` | Generated static figure carrying its source-bundle digest. |
+| `article_endpoints_figure` | `article_results.json` | `endpoints.png` | Generated static figure carrying its source-bundle digest. |
 
 The Streamlit app and `examples/demo.py` intentionally have no generated
 benchmark snapshot: they compute per-session/example values. Check mode must
@@ -124,8 +125,8 @@ Automation must eventually verify:
 2. qualitative result claims in `README.md`, `article/README.md`,
    `CHANGELOG.md`, and `explaintrust/report.py` through explicit status markers
    or narrowly scoped assertions;
-3. article claims, compatibility JSON, and static figures against the planned
-   `article_results.json` bundle;
+3. article claims, compatibility JSON, and static figures against the canonical
+   `article_results.json` bundle (implemented);
 4. the real-data runner's displayed defaults against
    `explaintrust.report.DEFAULT_THRESHOLDS`;
 5. that ignored render/build outputs are regenerated from the reviewed sources
