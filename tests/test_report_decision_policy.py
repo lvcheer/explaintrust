@@ -103,7 +103,8 @@ def test_threshold_override_cannot_silently_reenable_descriptive_scoring(key):
 
 
 @pytest.mark.parametrize("forced_infidelity", [None, np.inf, np.nan])
-def test_benchmark_export_no_longer_grades_descriptive_metrics(monkeypatch, tmp_path, forced_infidelity):
+def test_benchmark_export_no_longer_grades_descriptive_metrics(
+        monkeypatch, benchmark_artifact_sandbox, forced_infidelity):
     from experiments import benchmark_real_data as benchmark
     from sklearn.ensemble import RandomForestClassifier
 
@@ -122,14 +123,15 @@ def test_benchmark_export_no_longer_grades_descriptive_metrics(monkeypatch, tmp_
     monkeypatch.setattr(benchmark, "SEEDS", range(7, 8))
     monkeypatch.setattr(benchmark, "N_EXPLAIN", 2)
     monkeypatch.setattr(benchmark, "LIME_SAMPLES", 500)
-    monkeypatch.setattr(benchmark, "HERE", tmp_path)
     if forced_infidelity is not None:
         monkeypatch.setattr(benchmark, "infidelity", lambda *args, **kwargs: forced_infidelity)
+    sandbox = benchmark_artifact_sandbox(benchmark, n_explain=2)
     benchmark.main()
-    payload = json.loads((tmp_path / "benchmark_results.json").read_text())
-    assert payload["schema_version"] == 3
-    assert len(payload["runs"]) == payload["n_runs"] == 2
-    for run in payload["runs"]:
+    raw = json.loads((sandbox["results"] / "raw_runs.json").read_text())
+    summary_payload = json.loads((sandbox["results"] / "summary.json").read_text())
+    assert raw["schema_version"] == summary_payload["schema_version"] == 1
+    assert len(raw["runs"]) == raw["n_runs"] == summary_payload["n_runs"] == 2
+    for run in raw["runs"]:
         assert len(run["samples"]) == 2
         positions = benchmark._sample_test_positions(run["split_context"]["test_rows"], 2, 7).tolist()
         assert run["sampling"]["test_positions"] == positions
@@ -161,17 +163,24 @@ def test_benchmark_export_no_longer_grades_descriptive_metrics(monkeypatch, tmp_
             assert run["metric_counts"][metric] == benchmark._counts(decoded)
             assert run["metrics"][metric] == benchmark._measurement(benchmark._mean(decoded))
     for metric in benchmark.METRICS:
-        values = [run["metrics"][metric]["value"] for run in payload["runs"]
+        values = [run["metrics"][metric]["value"] for run in raw["runs"]
                   if run["metrics"][metric]["status"] == "finite"]
-        summary = payload["metrics"][metric]
+        summary = summary_payload["metrics"][metric]
         assert summary["run_counts"]["finite"] == len(values)
         assert summary["run_counts"]["total"] == 2
         assert summary["pooled_median"] == (round(float(np.median(values)), 4) if values else None)
-    for run in payload["run_contexts"]:
-        assert run["split"]["preprocessing_fit"] == "train_only"
+    for run in raw["runs"]:
+        assert run["split_context"]["preprocessing_fit"] == "train_only"
         if run["dataset"] == "diabetes":
-            assert run["split"]["patient_overlap"] == 0
-    for key, result in payload["metrics"].items():
+            assert run["split_context"]["patient_overlap"] == 0
+    for key, result in summary_payload["metrics"].items():
         if key.startswith(("disagreement_", "distribution_")):
             assert result["role"] == "descriptive"
             assert result["current_default"] is None
+    assert sandbox["historical"].read_text() == sandbox["historical_text"]
+    environment = json.loads((sandbox["results"] / "environment.json").read_text())
+    assert environment["config"]["sha256"] == summary_payload["run_context"]["config_sha256"]
+    report = (sandbox["results"] / "change_report.md").read_text()
+    for heading in ("Baseline identity", "Comparison rule", "Metric comparison",
+                    "Non-comparable fields", "Interpretation"):
+        assert f"## {heading}" in report

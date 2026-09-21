@@ -14,8 +14,8 @@ def test_all_samples_are_evaluated_with_full_batch_repeats(monkeypatch, sensitiv
     sensitivity_calls, lime_calls = [], []
     original_lime = benchmark.lime_attributions
 
-    def sensitivity(explain, x, background, *, n_perturbations, seed):
-        sensitivity_calls.append((x.copy(), n_perturbations, seed))
+    def sensitivity(explain, x, background, *, n_perturbations, radius, seed):
+        sensitivity_calls.append((x.copy(), n_perturbations, radius, seed))
         return sensitivity_values[len(sensitivity_calls) - 1]
 
     def lime(model, instances, background, **kwargs):
@@ -27,9 +27,9 @@ def test_all_samples_are_evaluated_with_full_batch_repeats(monkeypatch, sensitiv
     monkeypatch.setattr(benchmark, 'LIME_SAMPLES', 100)
     result = benchmark._run_metrics(model, explained, X, list('abcd'), X, seed=12)
     assert len(sensitivity_calls) == 3
-    for i, (instance, budget, seed) in enumerate(sensitivity_calls):
+    for i, (instance, budget, radius, seed) in enumerate(sensitivity_calls):
         np.testing.assert_array_equal(instance, explained[i])
-        assert (budget, seed) == (6, 12 + i)
+        assert (budget, radius, seed) == (6, 0.1, 12 + i)
     assert len(lime_calls) == 5
     for i, (instances, budget, seed) in enumerate(lime_calls):
         np.testing.assert_array_equal(instances, explained)

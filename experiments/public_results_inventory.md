@@ -66,7 +66,7 @@ numbers vary with the selected data, model, seed, and analysis budget.
 | Entry point | Output currently written or displayed |
 |---|---|
 | `python -m experiments.calibrate_thresholds` | Validates the frozen config; preserves historical `calibration.json`; writes `experiments/results/synthetic/{raw_runs,summary,environment}.json`; and prints the synthetic result table. |
-| `python -m experiments.benchmark_real_data --n-explain 4` | Writes `experiments/benchmark_results.json` and prints the real-data summary table. |
+| `python -m experiments.benchmark_real_data --n-explain 4` | Preserves historical `experiments/benchmark_results.json`; writes `experiments/results/real/{raw_runs,summary,environment}.json` plus `change_report.md`; and prints the real-data summary table. |
 | `python article/scripts/generate_figures.py` | Writes `conversion.json`, `conversion_flip.png`, and `endpoints.png`. |
 | `quarto render article` | Builds the ignored `article/_site/` delivery artifact. |
 

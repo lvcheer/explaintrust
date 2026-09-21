@@ -34,12 +34,26 @@ splits, including recombination of Adult's official files. They remain historica
 results and cannot be used as evidence for the corrected protocol. A full rerun
 and comparison are still required before updating empirical conclusions.
 
-**Raw-result export update (2026-09-06).** New JSON uses `schema_version: 3`
-and retains the existing `metrics` summary and `run_contexts`, plus:
+**Refresh-output update (2026-09-21).** The runner now validates the frozen
+configuration and historical baseline before loading data, then verifies the
+source-archive hashes before model fitting. It preserves
+`experiments/benchmark_results.json` and publishes a
+completed refresh under `experiments/results/real/` only after every run has
+finished:
 
-- `runs`: one record per dataset/model/seed, with unrounded aggregate metrics,
-  `metric_counts`, feature names, background positions within the training
-  partition, and the split/SHAP context.
+- `raw_runs.json` (schema 1) contains one record per dataset/model/seed, with
+  unrounded aggregate metrics, `metric_counts`, feature names, background
+  positions within the training partition, and the split/SHAP context.
+- `summary.json` (schema 1) contains the frozen config, budgets, aggregation,
+  dataset metadata, run counts, and summaries derived from the same run records.
+- `environment.json` (schema 1) contains commit/worktree state, command, Python,
+  platform, installed packages, runner/config hashes, and verified source hashes.
+- `change_report.md` applies the pre-run comparison tolerance to Adult, Diabetes,
+  and pooled medians. A material-change flag requires explanation; it is not an
+  automatic regression failure.
+
+Within `raw_runs.json`:
+
 - `runs[].samples`: positions within the test partition, perturbation seeds,
   per-instance metric values, SHAP values, LIME coefficients and contributions.
   Sensitivity and stability now cover every explained instance, with the same
@@ -53,8 +67,7 @@ and retains the existing `metrics` summary and `run_contexts`, plus:
   memberships, group sizes and mean absolute attribution vectors. The first
   sorted group is the flip-rate reference. These are group-level diagnostics,
   not additional independent per-instance measurements.
-- `budget` and `aggregation`: requested sample sizes, perturbation budgets,
-  evaluation scope and aggregation rules.
+Budget and aggregation metadata live in `summary.json`.
 
 Each raw metric is `{value, status}`. Finite values retain full precision;
 `nan`, `positive_infinity`, `negative_infinity` and `not_computed` retain their
@@ -86,15 +99,15 @@ method, seed, requested/available/actual counts and selected test positions.
 metrics and LIME repeat records carry this mapping. Perturbation seeds use the
 batch position, while subgroup positions continue to refer to the full test set.
 
-Configure the sample count without editing source:
+Run the frozen explanation sample count:
 
 ```bash
-python3 experiments/benchmark_real_data.py --n-explain 25
+python -m experiments.benchmark_real_data --n-explain 4
 ```
 
-The default remains four. Counts must be positive integers and are validated
-before data loading; requests larger than the test partition use all its rows
-once, without duplication. Python callers can use `main(n_explain=25)`.
+The frozen refresh count is four. Counts must be positive integers and are
+validated before data loading; the canonical runner rejects a value that differs
+from `experiments/config.json`.
 Sampling units are test rows (encounters for Diabetes), not unique patients;
 multiple encounters from a held-out patient may be sampled. Random selection
 removes fixed-prefix selection but does not guarantee class balance or establish
@@ -118,7 +131,7 @@ z-scored. It answers two questions the synthetic study cannot:
 1. **Do the report's hand-picked defaults match reality?**
 2. **Are the metrics' typical values transferable across datasets?**
 
-Reproduce with `python3 experiments/benchmark_real_data.py`
+Reproduce with `python -m experiments.benchmark_real_data --n-explain 4`
 (data auto-downloads into `experiments/data/`, which is gitignored).
 
 ## Results (pooled over 2 datasets × 3 models × 8 seeds)

@@ -4,14 +4,18 @@ Date: 2026-09-21
 Branch: `experiment/reproducible-benchmark-refresh`  
 Scope: Adult Income and Diabetes 130-US benchmark entry points, source data, protocol, historical outputs, and pre-run gaps. No benchmark was executed during this inventory.
 
+Implementation update (2026-09-21): the output/configuration blockers recorded
+below were subsequently addressed in the runner. They are retained here as the
+pre-change audit trail; the full benchmark remains unexecuted.
+
 ## Current entry points
 
 | Purpose | Entry point | Current behavior |
 |---|---|---|
-| Real-data benchmark | `python -m experiments.benchmark_real_data --n-explain 4` | Loads both cached UCI datasets, prepares leakage-controlled splits, evaluates 3 models × 8 seeds, writes `experiments/benchmark_results.json`, and prints a summary table. |
+| Real-data benchmark | `python -m experiments.benchmark_real_data --n-explain 4` | Validates the frozen contract, loads both UCI datasets, evaluates 3 models × 8 seeds, preserves the historical JSON, writes four artifacts under `experiments/results/real/`, and prints a summary table. |
 | Dataset/split diagnostic | `python -m experiments.real_datasets` | Loads both datasets, prepares one split for each, and prints dimensions and split context. It is a diagnostic helper, not a benchmark result producer. |
 
-The frozen entry point in `experiments/config.json` is the module form shown above. The script docstring also permits `python experiments/benchmark_real_data.py`, but the module form is the canonical command for the refresh.
+The frozen entry point in `experiments/config.json` is the module form shown above and is the canonical command for the refresh.
 
 ## Frozen run matrix
 
