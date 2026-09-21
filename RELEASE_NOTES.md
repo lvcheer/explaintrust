@@ -1,10 +1,11 @@
-# explaintrust 0.2.0rc1
+# explaintrust 0.2.0
 
 Release date: 21 September 2026
 
-This is a release candidate for the first fully refreshed and reproducible
-explaintrust evidence bundle. It is intended for installation and review before
-the final `0.2.0` release. It is not yet the public stable release.
+This release completes the first fully refreshed and reproducible explaintrust
+evidence bundle. The code is unchanged from `0.2.0rc1`, which passed GitHub CI,
+clean wheel and source-distribution installs, and public TestPyPI installation
+verification before promotion.
 
 ## User-visible changes
 
@@ -61,10 +62,10 @@ can be zero or nearly zero. Its pooled median is `20.67`, while P90 is
 - Default thresholds are versioned policy choices, not universally calibrated
   cutoffs. Method disagreement and subgroup heterogeneity remain descriptive.
 - The software, article, and technical brief have not been peer reviewed.
-- XGBoost support is optional; the core candidate verification does not require
+- XGBoost support is optional; the core release verification does not require
   that extra.
 
-## Candidate installation
+## Installation
 
 From the tagged repository checkout:
 

@@ -5,7 +5,7 @@ does not vendor third-party source code, fonts, or benchmark datasets. Python
 dependencies are installed separately and remain governed by their own
 licenses.
 
-The direct dependency metadata was reviewed for the `0.2.0rc1` candidate on
+The direct dependency metadata was reviewed for the `0.2.0` release on
 21 September 2026. This table records the project or package license reported
 by the reviewed distributions or upstream package metadata; binary wheels may
 contain additional notices, which remain authoritative in the installed
