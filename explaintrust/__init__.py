@@ -29,7 +29,7 @@ from .explainers import (
 from .report import DEFAULT_THRESHOLDS, TrustReport, build_trust_report, per_feature_reliability
 from .data import make_collinear_dataset, shift_distribution, FEATURE_ROLES
 
-__version__ = "0.2.0rc1"
+__version__ = "0.2.0"
 
 __all__ = [
     "scalar_predictor",

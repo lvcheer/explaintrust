@@ -242,7 +242,7 @@ output/pdf/            # distributable two-page technical brief
 
 ## Status
 
-Release candidate (v0.2.0rc1). Numeric tabular data, binary classification/regression, SHAP,
+Current release (v0.2.0). Numeric tabular data, binary classification/regression, SHAP,
 and LIME only; image/text, LLM interpretability, and counterfactuals are out of
 scope. Thresholds are documented defaults rather than calibrated claims and can
 be overridden through `build_trust_report(..., thresholds={...})`. A passing
@@ -422,4 +422,4 @@ output/pdf/            # 可分发的两页技术简报
 
 ### 现状
 
-发布候选版本（v0.2.0rc1）。目前仅支持数值型表格数据、二分类/回归、SHAP 与 LIME；图像/文本、LLM 可解释性和反事实解释暂不在范围内。报告阈值是文档化默认值，不是经过普适校准的结论，可通过 `build_trust_report(..., thresholds={...})` 覆盖。所有检查通过只表示“当前配置未检出问题”，并非真实性证书。
+当前版本（v0.2.0）。目前仅支持数值型表格数据、二分类/回归、SHAP 与 LIME；图像/文本、LLM 可解释性和反事实解释暂不在范围内。报告阈值是文档化默认值，不是经过普适校准的结论，可通过 `build_trust_report(..., thresholds={...})` 覆盖。所有检查通过只表示“当前配置未检出问题”，并非真实性证书。
