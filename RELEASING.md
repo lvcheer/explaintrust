@@ -17,8 +17,16 @@ each step.
    python examples/demo.py
    python experiments/calibrate_thresholds.py
    python experiments/benchmark_real_data.py
+   python article/scripts/generate_figures.py
+   python -m experiments.build_all_results
+   python -m experiments.build_all_results --check
+   git diff --check
    quarto render article
    ```
+
+   Review every changed canonical result and generated public artifact before
+   continuing. Write mode updates generated targets only; if a checked manual
+   claim is stale, revise that prose deliberately and rerun check mode.
 
 5. Build and inspect the distribution from a clean tree:
 

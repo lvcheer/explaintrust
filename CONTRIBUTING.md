@@ -29,11 +29,23 @@ python examples/demo.py
 - Do not interpret SHAP or LIME output as causal evidence without a separate
   identification argument.
 - Update generated experiment outputs and article numbers when their producing
-  code changes.
+  code changes. After reviewing any refreshed canonical result bundle, update
+  its derived public artifacts with `python -m experiments.build_all_results`.
 
 Names exported from `explaintrust.__all__` are the supported public API.
 Breaking changes require a major version bump; during `0.x`, incompatible API
 changes require a minor version bump and a changelog entry.
 
-Before opening a pull request, run the tests, the headless demo, and
-`git diff --check`. For release-related changes, also follow `RELEASING.md`.
+Before opening a pull request, run:
+
+```bash
+python -m pytest -q
+python examples/demo.py
+python -m experiments.build_all_results --check
+git diff --check
+```
+
+The consistency check is required whenever experiment or article producers,
+canonical result bundles, generated public artifacts, or checked result claims
+change. It never rewrites manually reviewed prose. For release-related changes,
+also follow `RELEASING.md`.

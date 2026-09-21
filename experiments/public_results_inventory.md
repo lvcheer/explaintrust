@@ -7,8 +7,9 @@ The source-to-target contract is frozen in
 `python -m experiments.build_all_results` entry point consumes that map in
 write and check modes. It currently controls the two benchmark Markdown tables
 and all article-derived claims, data, and figures, and it checks six manually
-reviewed result contracts. Workflow integration remains planned. This inventory
-explains the boundary in human-readable form.
+reviewed result contracts. CI, release, and contributor workflows now invoke the
+same consistency command. This inventory explains the boundary in human-readable
+form.
 
 This inventory covers every tracked source that stores, renders, or makes a
 reader-facing claim about experiment results. It distinguishes the two reviewed
@@ -98,9 +99,9 @@ numbers vary with the selected data, model, seed, and analysis budget.
 The Streamlit app and `examples/demo.py` intentionally have no generated
 benchmark snapshot: they compute per-session/example values. Check mode must
 instead reject embedded benchmark medians or fitted experimental thresholds.
-CI will run `python -m experiments.build_all_results --check`; the release
-workflow will run write mode followed by check mode. Contributor guidance will
-name check mode for changes to result-producing code.
+CI runs `python -m experiments.build_all_results --check`; the release checklist
+runs write mode followed by check mode. Contributor guidance names check mode for
+changes to result-producing code.
 
 ## Explicit exclusions
 
@@ -133,5 +134,5 @@ its version/date must point to the commit containing the reviewed results.
 5. that the Streamlit and headless demos remain live computations without
    references to stored benchmark outputs.
 
-CI, release, and contributor-command integration remain the next workflow step.
-Ignored Quarto/build outputs remain delivery artifacts rather than inputs.
+CI, release, and contributor-command integration is complete. Ignored
+Quarto/build outputs remain delivery artifacts rather than inputs.

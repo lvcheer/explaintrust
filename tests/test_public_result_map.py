@@ -1,4 +1,5 @@
 import json
+import re
 from pathlib import Path
 
 
@@ -11,7 +12,7 @@ def test_public_result_map_references_are_closed_and_unique():
     assert mapping["schema_version"] == 1
     assert mapping["entry_point"] == "python -m experiments.build_all_results"
     assert mapping["modes"] == ["write", "check"]
-    assert mapping["implementation_status"] == "partial"
+    assert mapping["implementation_status"] == "implemented"
 
     sources = mapping["sources"]
     source_ids = [source["id"] for source in sources]
@@ -93,5 +94,11 @@ def test_workflow_integrations_are_unique_and_target_existing_files():
         "ci_consistency_check", "release_refresh", "contributor_guidance",
     }
     for integration in integrations:
-        assert (ROOT / integration["target"]).is_file()
+        target = ROOT / integration["target"]
+        assert target.is_file()
+        assert integration["implementation_status"] == "implemented"
         assert "experiments.build_all_results" in integration["planned_command"]
+        text = target.read_text()
+        for command in integration["planned_command"].split(" && "):
+            pattern = rf"(?m)^\s*(?:-\s+run:\s+)?{re.escape(command)}\s*$"
+            assert re.search(pattern, text), f"{target} does not run {command!r}"

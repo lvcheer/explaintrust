@@ -3,7 +3,7 @@
   "frozen_on": "2026-09-21",
   "entry_point": "python -m experiments.build_all_results",
   "modes": ["write", "check"],
-  "implementation_status": "partial",
+  "implementation_status": "implemented",
   "sources": [
     {
       "id": "synthetic_summary",
@@ -288,18 +288,21 @@
     {
       "id": "ci_consistency_check",
       "target": ".github/workflows/ci.yml",
+      "implementation_status": "implemented",
       "planned_command": "python -m experiments.build_all_results --check",
       "requirement": "CI fails when a tracked generated block, claim, data file, or figure differs from its canonical source."
     },
     {
       "id": "release_refresh",
       "target": "RELEASING.md",
+      "implementation_status": "implemented",
       "planned_command": "python -m experiments.build_all_results && python -m experiments.build_all_results --check",
       "requirement": "Release verification refreshes public artifacts and then proves the worktree is synchronized."
     },
     {
       "id": "contributor_guidance",
       "target": "CONTRIBUTING.md",
+      "implementation_status": "implemented",
       "planned_command": "python -m experiments.build_all_results --check",
       "requirement": "Contributor guidance names the consistency check for changes to experiment or article producers."
     }

@@ -56,7 +56,9 @@ All notable changes are recorded here. This project follows
   Experiment and article generators use the aligned protocol. Reviewed synthetic,
   real-data and article result bundles now drive their public tables, numerical
   claims and figures through a write/check consistency command; historical
-  top-level experiment JSON files remain preserved comparison baselines.
+  top-level experiment JSON files remain preserved comparison baselines. CI,
+  contributor guidance and the release checklist now run the same consistency
+  contract.
 - Binary `class_index=0` now selects the class-0 decision margin and native
   single-output SHAP attributions, with matching LIME directions. Per-class
   SHAP outputs and already-selected KernelSHAP outputs are not negated again.
