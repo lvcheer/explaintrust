@@ -1,12 +1,12 @@
 {
   "schema_version": 1,
-  "generated_at_utc": "2026-09-21T09:30:26.851420+00:00",
+  "generated_at_utc": "2026-09-21T09:39:19.342591+00:00",
   "command": [
     "/private/tmp/explaintrust-refresh.kHkIIS/venv/bin/python",
     "/Users/lvcheer/Documents/OutofPhD/explaintrust/experiments/calibrate_thresholds.py"
   ],
   "git": {
-    "commit": "bb8055253557358433e5c78dbec4d848f5d8c0f8",
+    "commit": "fc2a2837ea423852205418d54a3b4821f6a5bea1",
     "branch": "experiment/reproducible-benchmark-refresh",
     "dirty": false
   },
