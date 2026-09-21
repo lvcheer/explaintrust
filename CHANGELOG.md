@@ -59,6 +59,8 @@ All notable changes are recorded here. This project follows
   top-level experiment JSON files remain preserved comparison baselines. CI,
   contributor guidance and the release checklist now run the same consistency
   contract.
+- Source distributions now include the headless reference demo alongside the
+  README, license, changelog, citation metadata and build configuration.
 - Binary `class_index=0` now selects the class-0 decision margin and native
   single-output SHAP attributions, with matching LIME directions. Per-class
   SHAP outputs and already-selected KernelSHAP outputs are not negated again.
