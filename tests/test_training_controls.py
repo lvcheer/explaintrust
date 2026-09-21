@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import numpy as np
 import pandas as pd
 import pytest
@@ -90,7 +92,8 @@ def test_language_switch_preserves_model_parameters_and_training(monkeypatch):
     from streamlit.elements.lib import policies
     monkeypatch.setattr(policies, "_shown_default_value_warning", False)
     from streamlit.testing.v1 import AppTest
-    app = AppTest.from_file('app/streamlit_app.py').run(timeout=40)
+    app_path = Path(__file__).resolve().parents[1] / 'app' / 'streamlit_app.py'
+    app = AppTest.from_file(app_path).run(timeout=40)
 
     def click(label):
         next(b for b in app.button if b.label == label).click()

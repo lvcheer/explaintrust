@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import numpy as np
 import pandas as pd
 import pytest
@@ -78,7 +80,8 @@ def test_xgboost_training_and_shap_output_alignment(task):
 
 def test_button_workflow_and_retraining_invalidation():
     from streamlit.testing.v1 import AppTest
-    app = AppTest.from_file('app/streamlit_app.py').run(timeout=40)
+    app_path = Path(__file__).resolve().parents[1] / 'app' / 'streamlit_app.py'
+    app = AppTest.from_file(app_path).run(timeout=40)
 
     def click(label):
         next(button for button in app.button if button.label == label).click()
