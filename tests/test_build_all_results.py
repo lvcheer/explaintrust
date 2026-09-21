@@ -32,6 +32,7 @@ def _copy_result_contract(tmp_path):
         "article/README.md",
         "article/scripts/generate_figures.py",
         "app/streamlit_app.py",
+        "docs/explaintrust-technical-brief.md",
         "examples/demo.py",
     ]
     for relative in paths:
@@ -183,6 +184,11 @@ def test_check_detects_stale_article_result_bundle(tmp_path):
             "Historical experiment tables await regeneration.",
         ),
         ("README.md", "`0.875`", "`0.999`"),
+        (
+            "docs/explaintrust-technical-brief.md",
+            "pooled top-k stability median was\n`0.875`",
+            "pooled top-k stability median was\n`0.999`",
+        ),
         ("experiments/benchmark_README.md", "median is 20.67", "median is 99.99"),
         (
             "examples/demo.py",

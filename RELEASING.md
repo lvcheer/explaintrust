@@ -18,6 +18,7 @@ each step.
    python experiments/calibrate_thresholds.py
    python experiments/benchmark_real_data.py
    python article/scripts/generate_figures.py
+   python docs/build_technical_brief.py
    python -m experiments.build_all_results
    python -m experiments.build_all_results --check
    git diff --check
@@ -31,7 +32,7 @@ each step.
 5. Build and inspect the distribution from a clean tree:
 
    ```bash
-   python -m pip install -e ".[release]"
+   python -m pip install -e ".[docs,release]"
    python -m build
    python -m twine check dist/*
    ```

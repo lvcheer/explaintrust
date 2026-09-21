@@ -6,7 +6,7 @@ The source-to-target contract is frozen in
 `experiments/public_result_map.json` (schema 1). The
 `python -m experiments.build_all_results` entry point consumes that map in
 write and check modes. It currently controls the two benchmark Markdown tables
-and all article-derived claims, data, and figures, and it checks six manually
+and all article-derived claims, data, and figures, and it checks seven manually
 reviewed result contracts. CI, release, and contributor workflows now invoke the
 same consistency command. This inventory explains the boundary in human-readable
 form.
@@ -49,6 +49,8 @@ sources. Article examples remain a third, separate result family.
 | `explaintrust/report.py` — module documentation | Qualitative claim that three metrics separate engineered regimes while several do not | Refreshed synthetic summary | Keep the checked claim qualitative. Numeric defaults remain a decision policy, not fitted benchmark output. |
 | `CHANGELOG.md` — Unreleased | Records completed refreshes, protocol changes, preserved baselines, and non-comparability | Refresh completion and release history | Keep the checked status without copying result tables into the changelog. |
 | `article/README.md` | Documents the completed numerical refresh and reproduction commands | Article-example regeneration status | Keep the status synchronized with the generated bundle and consistency check. |
+| `article/index.qmd` — project summary | Problem, evaluation taxonomy, protocol, three headline findings, limits, and project links | Refreshed synthetic and real-data summaries plus the real change report | Keep the summary concise; check headline values while leaving the longer interactive article intact. |
+| `docs/explaintrust-technical-brief.md` | Two-page English brief source with method, evidence, reproducibility, and limitations | Refreshed summaries, change report, and project metadata | Regenerate the PDF after source changes; check mode rejects stale headline values. |
 
 ## Figures and rendered outputs
 
@@ -56,6 +58,7 @@ sources. Article examples remain a third, separate result family.
 |---|---|---|
 | `article/figures/conversion_flip.png` | `article_results.json` through `build_all_results` | Regenerate and visually verify its displayed correlation values against `conversion.json`. |
 | `article/figures/endpoints.png` | `article_results.json` through `build_all_results` | Regenerate and visually verify labels, mean-absolute attribution scale, and empirical-correlation wording. |
+| `output/pdf/explaintrust-technical-brief.pdf` | `docs/explaintrust-technical-brief.md` through `docs/build_technical_brief.py` | Keep the embedded source digest current and visually verify that the brief remains exactly two pages. |
 | `article/_site/` | Quarto render of `article/index.qmd`; ignored by Git | Re-render for visual QA. It is a delivery artifact, not a canonical result source. |
 | Deployed article/GitHub Pages, if published | Published `article/_site/` | Publish only from the reviewed render tied to the result commit. |
 
@@ -133,6 +136,8 @@ its version/date must point to the commit containing the reviewed results.
    `explaintrust.report.DEFAULT_THRESHOLDS`;
 5. that the Streamlit and headless demos remain live computations without
    references to stored benchmark outputs.
+6. that the project-page and technical-brief headline findings match the
+   reviewed synthetic and real-data summaries.
 
 CI, release, and contributor-command integration is complete. Ignored
 Quarto/build outputs remain delivery artifacts rather than inputs.

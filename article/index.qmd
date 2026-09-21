@@ -1,13 +1,12 @@
 ---
-title: "Why your SHAP plot might be lying to you"
-subtitle: "An interactive guide to testing explanations before you trust them"
+title: "explaintrust"
+subtitle: "Test post-hoc explanations before acting on them"
 author: "lvcheer"
 date: last-modified
 description: >
-  SHAP and LIME give you beautiful feature-importance charts, but a chart is not
-  evidence. This interactive guide shows the four ways post-hoc explanations
-  mislead you, the two category errors almost every tool makes, and a checklist
-  you can run before you trust an explanation.
+  A reproducible Python toolkit and interactive guide for evaluating the
+  faithfulness, stability, and reproducibility of tabular SHAP and LIME
+  explanations.
 bibliography: references.bib
 ---
 
@@ -16,10 +15,85 @@ bibliography: references.bib
 > disagreement and subgroup heterogeneity remain descriptive diagnostics and are
 > excluded from the library's overall quality-check verdict.
 
+::: {.project-hero}
+SHAP and LIME can produce a polished explanation without showing whether it
+tracks the model, survives another run, or changes across observed groups.
+**explaintrust** turns those questions into explicit, reproducible checks for
+numeric tabular classification and regression workflows.
+
+::: {.project-actions}
+[Open the live demo](https://lvcheer-explaintrust-appstreamlit-app-x7k48h.streamlit.app/){.btn .btn-primary}
+[View the code](https://github.com/lvcheer/explaintrust){.btn .btn-outline-primary}
+[Read the technical brief](https://github.com/lvcheer/explaintrust/blob/main/output/pdf/explaintrust-technical-brief.pdf){.btn .btn-outline-primary}
+:::
+:::
+
+## Project at a glance
+
+### Problem
+
+An attribution plot describes an explainer's output. It does not establish that
+the explanation is faithful to the model, stable under small perturbations,
+reproducible across stochastic runs, or consistent across observed subgroups.
+It also does not support a causal claim. explaintrust records evidence for these
+questions without collapsing all of them into one universal reliability score.
+
+### Evaluation map
+
+| Question | Metric family | Report role |
+|---|---|---|
+| Do important features move the prediction? | SHAP removal-effect correlation and comprehensiveness; normalized LIME infidelity | scored |
+| Does the explanation survive perturbation and reruns? | max-sensitivity; top-k rank and sign stability | scored |
+| Do SHAP and LIME tell different stories? | sign, rank, top-k, and magnitude differences | descriptive |
+| Does the story differ across selected groups? | cross-segment rank stability and top-k flip rate | descriptive |
+
+The scored checks use versioned decision-policy defaults. Method and subgroup
+diagnostics remain descriptive because disagreement or heterogeneity does not,
+by itself, identify a bad explanation.
+
+### Protocol and evidence
+
+The repository contains a controlled synthetic calibration and a real-data
+benchmark on Adult and Diabetes. Both use frozen configuration, seeded runs,
+training-only preprocessing, explicit SHAP/LIME backgrounds, raw and summary
+exports, environment provenance, and generated public claims.
+
+- Exactly three synthetic metrics met the held-out separation rule: SHAP
+  removal-effect correlation, LIME infidelity, and max-sensitivity.
+- Across 48 Adult/Diabetes run aggregates, the pooled top-k stability median was
+  `0.875`. Restricting the refreshed runs to the first explained instance
+  restores `1.000`, so broader coverage exposed previously hidden variability.
+- Comprehensiveness is heavy-tailed: its pooled median is `20.67`, while P90 is
+  `8.112e+09`. Near-zero random-removal denominators make this a not-noise gate,
+  not a graded effect size.
+
+### Limits
+
+The evidence covers two tabular datasets, SHAP, LIME, binary classification,
+and regression. Several protocol corrections changed together, while the
+historical benchmark has no raw runs; the refresh therefore cannot isolate
+individual causes or prove improved explanation quality. The thresholds are
+documented defaults rather than universal calibration, and the project has not
+been peer reviewed.
+
+### Run it
+
+```bash
+git clone https://github.com/lvcheer/explaintrust.git
+cd explaintrust
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install -e .
+python examples/demo.py
+```
+
+For citation metadata, use [`CITATION.cff`](https://github.com/lvcheer/explaintrust/blob/main/CITATION.cff).
+
+## Interactive guide: why your SHAP plot might be lying to you {#interactive-guide}
+
 ::: {.lead}
-Type `shap.summary_plot(model, X)` and you get a beautiful, publication-ready
-picture of "what your model thinks". It *feels* like understanding. It often
-isn't. This guide shows you how to tell the difference — interactively.
+SHAP and LIME produce clear visual summaries. This guide examines what evidence
+would support acting on them, and where that evidence stops.
 :::
 
 ## The picture that feels like understanding

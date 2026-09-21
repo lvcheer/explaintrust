@@ -11,6 +11,9 @@ dist/
 # Quarto build output
 _site/
 
+# Rendered review intermediates
+/tmp/
+
 # Downloaded benchmark datasets
 experiments/data/
 

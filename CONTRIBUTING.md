@@ -31,6 +31,8 @@ python examples/demo.py
 - Update generated experiment outputs and article numbers when their producing
   code changes. After reviewing any refreshed canonical result bundle, update
   its derived public artifacts with `python -m experiments.build_all_results`.
+- Rebuild the technical brief with `python docs/build_technical_brief.py` after
+  changing its source or any headline evidence it reports.
 
 Names exported from `explaintrust.__all__` are the supported public API.
 Breaking changes require a major version bump; during `0.x`, incompatible API
@@ -41,6 +43,7 @@ Before opening a pull request, run:
 ```bash
 python -m pytest -q
 python examples/demo.py
+python docs/build_technical_brief.py
 python -m experiments.build_all_results --check
 git diff --check
 ```

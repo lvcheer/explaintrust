@@ -1,8 +1,9 @@
-# Article: "Why your SHAP plot might be lying to you"
+# Project page and interactive article
 
-An explorable (interactive) article built with Quarto. It is the *public-facing*
-half of the explaintrust project. The library and experiment outputs are the
-reproducible technical artifacts; neither is peer reviewed yet.
+The Quarto site combines a concise explaintrust project page with the
+interactive article "Why your SHAP plot might be lying to you". The library,
+experiment outputs, and two-page technical brief are the reproducible technical
+artifacts; none is peer reviewed yet.
 
 **Numerical refresh completed (2026-09-21).** The canonical
 `figures/article_results.json` bundle records the seeded configuration, package
@@ -11,7 +12,14 @@ article claims, compatibility JSON, and figures are generated from that bundle.
 
 ## One-time setup
 
-1. Install Quarto: https://quarto.org/docs/get-started/
+1. Install Quarto and the documentation dependency:
+
+   ```bash
+   python -m pip install -e ".[app,docs]"
+   ```
+
+   Quarto installation instructions: https://quarto.org/docs/get-started/
+
 2. Regenerate the figures and data (from the repo root):
 
    ```bash
@@ -22,7 +30,13 @@ article claims, compatibility JSON, and figures are generated from that bundle.
    claims, `conversion.json` (the data behind the centerpiece interactive),
    `conversion_flip.png`, and `endpoints.png` from that one result bundle.
 
-3. Verify that all tracked outputs match their canonical sources:
+3. Rebuild the two-page technical brief:
+
+   ```bash
+   python docs/build_technical_brief.py
+   ```
+
+4. Verify that all tracked outputs match their canonical sources:
 
    ```bash
    python -m experiments.build_all_results --check
@@ -50,7 +64,8 @@ the `repo-url` / links in `index.qmd` to your own repo, then publish the
 
 The article is a complete first draft. Before publishing an update:
 
-1. Regenerate the result bundle and figures after any explainer or metric change.
+1. Regenerate the result bundle, figures, and technical brief after any
+   explainer, metric, or headline-evidence change.
 2. Verify the OJS toggle renders in `quarto preview` (it loads
    `figures/conversion.json`).
 3. Run `python -m experiments.build_all_results --check` to verify every

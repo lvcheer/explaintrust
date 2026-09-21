@@ -66,6 +66,10 @@ All notable changes are recorded here. This project follows
 - The bilingual README now leads with a runnable quickstart, an example report,
   metric boundaries, and checked findings from the refreshed synthetic and
   Adult/Diabetes benchmarks.
+- The Quarto article now opens as a project homepage with the problem,
+  evaluation taxonomy, protocol, evidence, limitations, installation, demo,
+  repository and citation links. A reproducible two-page English technical
+  brief carries the same checked findings and embeds its source digest.
 - Binary `class_index=0` now selects the class-0 decision margin and native
   single-output SHAP attributions, with matching LIME directions. Per-class
   SHAP outputs and already-selected KernelSHAP outputs are not negated again.

@@ -250,6 +250,26 @@
       "rule": "Pending-refresh notices may be removed only after article data, claims, and figures are regenerated together."
     },
     {
+      "id": "project_summary_findings",
+      "source_ids": ["synthetic_summary", "real_summary", "real_change_report"],
+      "targets": ["article/index.qmd", "docs/explaintrust-technical-brief.md"],
+      "implementation_status": "implemented",
+      "check_kind": "public_summary_findings",
+      "required_text": {
+        "article/index.qmd": [
+          "## Project at a glance",
+          "### Protocol and evidence",
+          "### Limits"
+        ],
+        "docs/explaintrust-technical-brief.md": [
+          "# explaintrust",
+          "## Three findings",
+          "## Limits and interpretation"
+        ]
+      },
+      "rule": "The project page and technical brief must retain the reviewed headline findings and their interpretation limits."
+    },
+    {
       "id": "live_demo_boundary",
       "source_ids": ["report_policy"],
       "targets": ["app/streamlit_app.py", "examples/demo.py"],

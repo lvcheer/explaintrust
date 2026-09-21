@@ -18,6 +18,10 @@ configured checks found no failure, not that an explanation is true or causal.
 
 **[Live demo · 在线演示](https://lvcheer-explaintrust-appstreamlit-app-x7k48h.streamlit.app/)** — Run the five-step workflow in English or Chinese without installing anything.
 
+[Project page](article/index.qmd) ·
+[Two-page technical brief](output/pdf/explaintrust-technical-brief.pdf) ·
+[Citation](CITATION.cff)
+
 ## 60-second start
 
 Until the public PyPI package is verified, install the reviewed repository
@@ -222,7 +226,9 @@ explaintrust/
 app/streamlit_app.py   # interactive demo
 examples/demo.py       # headless reference pipeline
 tests/test_metrics.py  # correctness/property tests
-article/               # Quarto explorable article ("Why your SHAP plot might be lying to you")
+article/               # Quarto project page and interactive guide
+docs/                  # technical brief source and PDF generator
+output/pdf/            # distributable two-page technical brief
 ```
 
 ## Reference definitions
@@ -402,7 +408,9 @@ explaintrust/
 app/streamlit_app.py   # 交互式 Demo
 examples/demo.py       # 无界面参考流程
 tests/test_metrics.py  # 正确性/性质测试
-article/               # Quarto 交互式文章（“Why your SHAP plot might be lying to you”）
+article/               # Quarto 项目主页与交互式指南
+docs/                  # 技术简报源文件与 PDF 生成器
+output/pdf/            # 可分发的两页技术简报
 ```
 
 ### 参考定义

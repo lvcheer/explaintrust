@@ -3,10 +3,18 @@ project:
   output-dir: _site
 
 website:
-  title: "Why your SHAP plot might be lying to you"
+  title: "explaintrust"
   page-navigation: true
   repo-url: https://github.com/lvcheer/explaintrust
   repo-actions: [edit, source]
+  navbar:
+    left:
+      - href: index.qmd
+        text: Project and guide
+    right:
+      - icon: github
+        href: https://github.com/lvcheer/explaintrust
+        aria-label: GitHub
 
 format:
   html:
@@ -19,9 +27,9 @@ format:
     page-layout: full
     include-in-header:
       text: |
-        <meta name="description" content="An interactive guide to testing post-hoc explanations (SHAP, LIME) before you trust them.">
-        <meta property="og:title" content="Why your SHAP plot might be lying to you">
-        <meta property="og:type" content="article">
+        <meta name="description" content="explaintrust tests the faithfulness, stability, and reproducibility of tabular SHAP and LIME explanations.">
+        <meta property="og:title" content="explaintrust">
+        <meta property="og:type" content="website">
 
 execute:
   freeze: auto

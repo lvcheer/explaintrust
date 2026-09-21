@@ -1,8 +1,26 @@
 /* explaintrust — article styles */
 
 body {
-  max-width: 70ch;
+  max-width: 82ch;
 }
+
+.project-hero {
+  background: linear-gradient(135deg, #eef4ff 0%, #f7fbff 60%, #eefaf7 100%);
+  border: 1px solid #d6e3f5;
+  border-radius: 14px;
+  font-size: 1.1rem;
+  margin: 1.25rem 0 2rem;
+  padding: 1.4rem 1.5rem;
+}
+
+.project-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin-top: 1rem;
+}
+
+.project-actions .btn { text-decoration: none; }
 
 /* Big readout numbers in the interactive cells */
 .big-number {
