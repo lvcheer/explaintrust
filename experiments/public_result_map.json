@@ -1,0 +1,195 @@
+{
+  "schema_version": 1,
+  "frozen_on": "2026-09-21",
+  "planned_entry_point": "python -m experiments.build_all_results",
+  "planned_modes": ["write", "check"],
+  "sources": [
+    {
+      "id": "synthetic_summary",
+      "path": "experiments/results/synthetic/summary.json",
+      "status": "canonical",
+      "schema_version": 1
+    },
+    {
+      "id": "real_summary",
+      "path": "experiments/results/real/summary.json",
+      "status": "canonical",
+      "schema_version": 1
+    },
+    {
+      "id": "real_change_report",
+      "path": "experiments/results/real/change_report.md",
+      "status": "reviewed_interpretation"
+    },
+    {
+      "id": "report_policy",
+      "path": "explaintrust/report.py",
+      "status": "versioned_policy_not_empirical_result"
+    },
+    {
+      "id": "article_results",
+      "path": "article/figures/article_results.json",
+      "status": "planned",
+      "producer": "article/scripts/generate_figures.py"
+    }
+  ],
+  "generated_targets": [
+    {
+      "id": "synthetic_results_table",
+      "source_ids": ["synthetic_summary"],
+      "target": "experiments/README.md",
+      "mode": "markdown_block",
+      "start_marker": "<!-- BEGIN AUTO:synthetic-results-table -->",
+      "end_marker": "<!-- END AUTO:synthetic-results-table -->",
+      "renderer": "synthetic_results_table",
+      "source_fields": [
+        "metrics[].name",
+        "metrics[].direction",
+        "metrics[].good_median",
+        "metrics[].bad_median",
+        "metrics[].good_threshold",
+        "metrics[].warn_threshold",
+        "metrics[].good_pass_rate",
+        "metrics[].bad_flag_rate"
+      ]
+    },
+    {
+      "id": "real_results_table",
+      "source_ids": ["real_summary", "report_policy"],
+      "target": "experiments/benchmark_README.md",
+      "mode": "markdown_block",
+      "start_marker": "<!-- BEGIN AUTO:real-results-table -->",
+      "end_marker": "<!-- END AUTO:real-results-table -->",
+      "renderer": "real_results_table",
+      "source_fields": [
+        "metrics.*.direction",
+        "metrics.*.per_dataset_median.adult",
+        "metrics.*.per_dataset_median.diabetes",
+        "metrics.*.pooled_median",
+        "metrics.*.pooled_p10",
+        "metrics.*.pooled_p90",
+        "metrics.*.role",
+        "metrics.*.current_default",
+        "metrics.*.run_counts"
+      ]
+    },
+    {
+      "id": "article_numeric_claims",
+      "source_ids": ["article_results"],
+      "target": "article/index.qmd",
+      "mode": "templated_claims",
+      "renderer": "article_numeric_claims",
+      "claim_ids": [
+        "faithfulness.removal_effect_correlation",
+        "faithfulness.comprehensiveness_ratio",
+        "agreement.before_rank_corr",
+        "agreement.after_rank_corr",
+        "agreement.before_sign_disagreement",
+        "agreement.after_sign_disagreement",
+        "stability.rank_corr",
+        "stability.topk_rank_corr",
+        "stability.sign_agreement"
+      ]
+    },
+    {
+      "id": "article_conversion_data",
+      "source_ids": ["article_results"],
+      "target": "article/figures/conversion.json",
+      "mode": "json_projection",
+      "renderer": "article_conversion_data"
+    },
+    {
+      "id": "article_conversion_figure",
+      "source_ids": ["article_results"],
+      "target": "article/figures/conversion_flip.png",
+      "mode": "binary_figure",
+      "renderer": "article_conversion_figure"
+    },
+    {
+      "id": "article_endpoints_figure",
+      "source_ids": ["article_results"],
+      "target": "article/figures/endpoints.png",
+      "mode": "binary_figure",
+      "renderer": "article_endpoints_figure"
+    }
+  ],
+  "checked_manual_claims": [
+    {
+      "id": "root_readme_refresh_status",
+      "source_ids": ["synthetic_summary", "real_summary", "real_change_report"],
+      "targets": ["README.md"],
+      "rule": "English and Chinese refresh-status wording must agree and must not say reviewed experiment tables await regeneration."
+    },
+    {
+      "id": "experiment_findings",
+      "source_ids": ["synthetic_summary"],
+      "targets": ["experiments/README.md", "explaintrust/report.py"],
+      "rule": "Qualitative separation and negative-result claims must match held-out pass and flag evidence; fitted thresholds remain experiment-specific."
+    },
+    {
+      "id": "real_findings",
+      "source_ids": ["real_summary", "real_change_report"],
+      "targets": ["experiments/benchmark_README.md", "CHANGELOG.md"],
+      "rule": "Findings must retain material changes, not-computed values, protocol non-comparability, and descriptive diagnostic roles."
+    },
+    {
+      "id": "decision_policy_mirror",
+      "source_ids": ["real_summary", "report_policy"],
+      "targets": ["experiments/benchmark_real_data.py"],
+      "rule": "Scored defaults and directions must match DEFAULT_THRESHOLDS; descriptive metrics must not acquire thresholds."
+    },
+    {
+      "id": "article_refresh_status",
+      "source_ids": ["article_results"],
+      "targets": ["article/README.md", "article/index.qmd"],
+      "rule": "Pending-refresh notices may be removed only after article data, claims, and figures are regenerated together."
+    },
+    {
+      "id": "live_demo_boundary",
+      "source_ids": ["report_policy"],
+      "targets": ["app/streamlit_app.py", "examples/demo.py"],
+      "rule": "The demo remains a live computation and must not embed benchmark medians or fitted synthetic thresholds as universal constants."
+    }
+  ],
+  "formatting": {
+    "directions": {"higher": "↑", "lower": "↓", "descriptive": "—"},
+    "rates": "two_decimal_places",
+    "summary_values": "up_to_four_decimals_scientific_at_abs_ge_1e6",
+    "missing": "n/a",
+    "not_computed": "not computed",
+    "descriptive_verdict": "descriptive"
+  },
+  "workflow_integrations": [
+    {
+      "id": "ci_consistency_check",
+      "target": ".github/workflows/ci.yml",
+      "planned_command": "python -m experiments.build_all_results --check",
+      "requirement": "CI fails when a tracked generated block, claim, data file, or figure differs from its canonical source."
+    },
+    {
+      "id": "release_refresh",
+      "target": "RELEASING.md",
+      "planned_command": "python -m experiments.build_all_results && python -m experiments.build_all_results --check",
+      "requirement": "Release verification refreshes public artifacts and then proves the worktree is synchronized."
+    },
+    {
+      "id": "contributor_guidance",
+      "target": "CONTRIBUTING.md",
+      "planned_command": "python -m experiments.build_all_results --check",
+      "requirement": "Contributor guidance names the consistency check for changes to experiment or article producers."
+    }
+  ],
+  "explicit_exclusions": [
+    "experiments/calibration.json",
+    "experiments/benchmark_results.json",
+    "review/",
+    "experiments/data/",
+    "article/_site/",
+    "dist/",
+    "explaintrust.egg-info/"
+  ],
+  "live_consumers_without_static_benchmark_values": [
+    "app/streamlit_app.py",
+    "examples/demo.py"
+  ]
+}
