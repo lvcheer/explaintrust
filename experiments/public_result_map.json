@@ -1,8 +1,9 @@
 {
   "schema_version": 1,
   "frozen_on": "2026-09-21",
-  "planned_entry_point": "python -m experiments.build_all_results",
-  "planned_modes": ["write", "check"],
+  "entry_point": "python -m experiments.build_all_results",
+  "modes": ["write", "check"],
+  "implementation_status": "partial",
   "sources": [
     {
       "id": "synthetic_summary",
@@ -39,6 +40,7 @@
       "source_ids": ["synthetic_summary"],
       "target": "experiments/README.md",
       "mode": "markdown_block",
+      "implementation_status": "implemented",
       "start_marker": "<!-- BEGIN AUTO:synthetic-results-table -->",
       "end_marker": "<!-- END AUTO:synthetic-results-table -->",
       "renderer": "synthetic_results_table",
@@ -58,9 +60,35 @@
       "source_ids": ["real_summary", "report_policy"],
       "target": "experiments/benchmark_README.md",
       "mode": "markdown_block",
+      "implementation_status": "implemented",
       "start_marker": "<!-- BEGIN AUTO:real-results-table -->",
       "end_marker": "<!-- END AUTO:real-results-table -->",
       "renderer": "real_results_table",
+      "row_labels": {
+        "removal_corr": "removal-effect correlation",
+        "comprehensiveness": "comprehensiveness ratio",
+        "infidelity": "LIME infidelity (normalized)",
+        "sensitivity": "max-sensitivity",
+        "stability_rank": "run-to-run rank stability (all-d)",
+        "stability_rank_topk": "run-to-run rank stability (top-k)",
+        "stability_sign": "run-to-run sign stability",
+        "disagreement_sign": "SHAP vs LIME sign disagreement",
+        "disagreement_rank": "SHAP vs LIME rank agreement (all-d)",
+        "disagreement_rank_topk": "SHAP vs LIME rank agreement (top-k)",
+        "disagreement_topk": "SHAP vs LIME top-k overlap",
+        "disagreement_magnitude": "SHAP vs LIME magnitude disagreement",
+        "distribution_rank": "cross-segment rank stability",
+        "distribution_flip": "top-k flip rate"
+      },
+      "policy_keys": {
+        "removal_corr": "removal",
+        "comprehensiveness": "comprehensiveness",
+        "infidelity": "lime_infidelity",
+        "sensitivity": "sensitivity",
+        "stability_rank": "stability_rank",
+        "stability_rank_topk": "stability_rank",
+        "stability_sign": "stability_sign"
+      },
       "source_fields": [
         "metrics.*.direction",
         "metrics.*.per_dataset_median.adult",
@@ -78,6 +106,7 @@
       "source_ids": ["article_results"],
       "target": "article/index.qmd",
       "mode": "templated_claims",
+      "implementation_status": "planned",
       "renderer": "article_numeric_claims",
       "claim_ids": [
         "faithfulness.removal_effect_correlation",
@@ -96,6 +125,7 @@
       "source_ids": ["article_results"],
       "target": "article/figures/conversion.json",
       "mode": "json_projection",
+      "implementation_status": "planned",
       "renderer": "article_conversion_data"
     },
     {
@@ -103,6 +133,7 @@
       "source_ids": ["article_results"],
       "target": "article/figures/conversion_flip.png",
       "mode": "binary_figure",
+      "implementation_status": "planned",
       "renderer": "article_conversion_figure"
     },
     {
@@ -110,6 +141,7 @@
       "source_ids": ["article_results"],
       "target": "article/figures/endpoints.png",
       "mode": "binary_figure",
+      "implementation_status": "planned",
       "renderer": "article_endpoints_figure"
     }
   ],

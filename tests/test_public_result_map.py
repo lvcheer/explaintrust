@@ -9,7 +9,9 @@ MAP_PATH = ROOT / "experiments/public_result_map.json"
 def test_public_result_map_references_are_closed_and_unique():
     mapping = json.loads(MAP_PATH.read_text())
     assert mapping["schema_version"] == 1
-    assert mapping["planned_modes"] == ["write", "check"]
+    assert mapping["entry_point"] == "python -m experiments.build_all_results"
+    assert mapping["modes"] == ["write", "check"]
+    assert mapping["implementation_status"] == "partial"
 
     sources = mapping["sources"]
     source_ids = [source["id"] for source in sources]

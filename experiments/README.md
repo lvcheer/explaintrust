@@ -52,20 +52,22 @@ not on the samples used to choose the thresholds.
 
 ## Results
 
-| Metric | dir | med(good) | med(bad) | good | warn | pass | flag | Result |
-|---|---|---|---|---|---|---|---|---|
-| SHAP removal-effect correlation | ↑ | 0.636 | 0.018 | 0.430 | 0.225 | .80 | .72 | ✅ separates |
-| SHAP comprehensiveness (top-k vs random) | ↑ | 2.142 | 0.642 | 1.730 | 2.533 | .62 | .75 | ⚠️ tails overlap |
-| LIME local fidelity (infidelity) | ↓ | 0.000 | 1.914 | 0.0001 | 1.433 | .80 | .82 | ✅ separates |
-| Max sensitivity | ↓ | 0.0003 | 0.0057 | 0.0006 | 0.0036 | .90 | .80 | ✅ separates |
-| Run-to-run rank stability | ↑ | 0.824 | 0.552 | 0.824 | 0.797 | .50 | .90 | ⚠️ unstable good boundary |
-| Run-to-run sign stability | ↑ | 1.000 | 0.667 | 1.000 | 1.000 | 1.00 | .60 | ⚠️ coarse |
-| SHAP vs LIME sign disagreement | ↓ | 0.250 | 0.250 | 0.250 | 0.000 | .80 | .12 | ❌ no separation |
-| SHAP vs LIME rank agreement | ↑ | 0.800 | 0.800 | 0.800 | 1.000 | .80 | .20 | ❌ no separation |
-| SHAP vs LIME top-3 overlap | ↑ | 1.000 | 1.000 | 0.667 | 1.000 | 1.00 | .00 | ❌ saturated |
-| SHAP vs LIME magnitude disagreement | ↓ | 0.868 | 0.548 | 1.103 | 0.332 | .78 | .15 | ❌ inverted |
-| Cross-segment rank stability | ↑ | 1.000 | 0.800 | 1.000 | 1.000 | .80 | .70 | ⚠️ coarse but directional |
-| Top-3 flip rate across segments | ↓ | 0.000 | 0.000 | 0.000 | 0.000 | 1.00 | .00 | ❌ saturated |
+<!-- BEGIN AUTO:synthetic-results-table -->
+| Metric | dir | med(good) | med(stress) | good | warn | pass | flag |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| SHAP removal-effect correlation | ↑ | 0.6829 | 0.0182 | 0.4279 | 0.24 | 0.85 | 0.78 |
+| SHAP comprehensiveness (top-k vs random) | ↑ | 2.2065 | 0.5621 | 1.7216 | 2.5893 | 0.65 | 0.78 |
+| LIME local fidelity (infidelity) | ↓ | 0 | 1.9136 | 0.0001 | 1.4334 | 0.80 | 0.82 |
+| Max sensitivity | ↓ | 0.0003 | 0.0057 | 0.0006 | 0.0032 | 0.90 | 0.90 |
+| Run-to-run rank stability | ↑ | 0.8236 | 0.5515 | 0.824 | 0.7966 | 0.50 | 0.90 |
+| Run-to-run sign stability | ↑ | 1 | 0.6667 | 1 | 1 | 1.00 | 0.60 |
+| SHAP vs LIME sign disagreement | ↓ | 0.25 | 0.25 | 0.25 | 0 | 0.80 | 0.17 |
+| SHAP vs LIME rank agreement | ↑ | 0.8 | 0.8 | 0.8 | 1 | 0.85 | 0.23 |
+| SHAP vs LIME top-3 overlap | ↑ | 1 | 1 | 0.6667 | 1 | 1.00 | 0.00 |
+| SHAP vs LIME magnitude disagreement (top-3) | ↓ | 0.8238 | 0.547 | 1.0047 | 0.2609 | 0.70 | 0.23 |
+| Cross-segment rank stability | ↑ | 1 | 0.8 | 1 | 1 | 0.90 | 0.70 |
+| Top-3 flip rate across segments | ↓ | 0 | 0 | 0 | 0 | 1.00 | 0.00 |
+<!-- END AUTO:synthetic-results-table -->
 
 (*↑ = higher-is-better, ↓ = lower-is-better.*)
 

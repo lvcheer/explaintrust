@@ -3,10 +3,11 @@
 Audit date: 2026-09-21.
 
 The source-to-target contract is frozen in
-`experiments/public_result_map.json` (schema 1). The future
-`python -m experiments.build_all_results` entry point must consume that map in
-write and check modes; this inventory explains the boundary in human-readable
-form. Freezing the map does not itself update any public table or claim.
+`experiments/public_result_map.json` (schema 1). The
+`python -m experiments.build_all_results` entry point consumes that map in
+write and check modes. It currently controls the two benchmark Markdown tables;
+article artifacts and manual-claim checks remain planned. This inventory
+explains the boundary in human-readable form.
 
 This inventory covers every tracked source that stores, renders, or makes a
 reader-facing claim about experiment results. It distinguishes the two reviewed
@@ -75,6 +76,7 @@ numbers vary with the selected data, model, seed, and analysis budget.
 
 | Entry point | Output currently written or displayed |
 |---|---|
+| `python -m experiments.build_all_results [--check]` | Writes the synthetic and real-data Markdown table blocks, or checks them for source drift without modifying files. |
 | `python -m experiments.calibrate_thresholds` | Validates the frozen config; preserves historical `calibration.json`; writes `experiments/results/synthetic/{raw_runs,summary,environment}.json`; and prints the synthetic result table. |
 | `python -m experiments.benchmark_real_data --n-explain 4` | Preserves historical `experiments/benchmark_results.json`; writes `experiments/results/real/{raw_runs,summary,environment}.json` plus `change_report.md`; and prints the real-data summary table. |
 | `python article/scripts/generate_figures.py` | Writes `conversion.json`, `conversion_flip.png`, and `endpoints.png`. |

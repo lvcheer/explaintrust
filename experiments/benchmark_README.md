@@ -137,22 +137,26 @@ Reproduce with `python -m experiments.benchmark_real_data --n-explain 4`
 
 ## Results (pooled over 2 datasets × 3 models × 8 seeds)
 
-| Metric | dir | Adult | Diabetes | pooled | P10 | P90 | default (good/warn) | verdict@median |
-|---|---|---|---|---|---|---|---|---|
-| removal-effect correlation | ↑ | 0.427 | 0.479 | 0.454 | 0.374 | 0.519 | 0.5 / 0.2 | warn |
-| comprehensiveness ratio | ↑ | 63.8 | 10.6 | 28.5 | 7.2 | 522.9 | `> 1` gate | good |
-| LIME infidelity (normalized) | ↓ | 0.748 | 0.725 | 0.726 | 0.000 | 1.149 | 0.5 / 1.0 | warn |
-| max-sensitivity | ↓ | 0.000 | 0.000 | 0.000 | 0.000 | 0.032 | 0.5 / 2.0 | good |
-| run-to-run rank stability (all-d) | ↑ | 0.926 | 0.910 | 0.921 | 0.878 | 1.000 | 0.9 / 0.7 | good |
-| run-to-run rank stability (**top-k**) | ↑ | 1.000 | 1.000 | 1.000 | 0.655 | 1.000 | 0.9 / 0.7 | good |
-| run-to-run sign stability | ↑ | 1.000 | 1.000 | 1.000 | 1.000 | 1.000 | 0.9 / 0.7 | good |
-| SHAP vs LIME sign disagreement | ↓ | 0.319 | 0.325 | 0.325 | 0.000 | 0.394 | 0.2 / 0.5 | warn |
-| SHAP vs LIME rank agreement (all-d) | ↑ | 0.804 | 0.867 | 0.843 | 0.606 | 0.977 | 0.7 / 0.4 | good |
-| SHAP vs LIME rank agreement (**top-k**) | ↑ | 0.688 | 0.688 | 0.688 | 0.348 | 1.000 | 0.7 / 0.4 | warn |
-| SHAP vs LIME top-k overlap | ↑ | 0.750 | 0.833 | 0.792 | 0.642 | 1.000 | 0.66 / 0.33 | good |
-| SHAP vs LIME magnitude disagreement | ↓ | 0.494 | 0.516 | 0.494 | 0.035 | 0.687 | 1.0 / 1.5 | good |
-| cross-segment rank stability | ↑ | 0.984 | 0.991 | 0.989 | 0.936 | 0.999 | 0.7 / 0.4 | good |
-| top-k flip rate | ↓ | 1.000 | 0.000 | 1.000 | 0.000 | 1.000 | 0.34 / 0.67 | **bad** |
+<!-- BEGIN AUTO:real-results-table -->
+| Metric | dir | Adult | Diabetes | pooled | P10 | P90 | finite runs | default (good/warn) | verdict@median |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| removal-effect correlation | ↑ | 0.4497 | 0.4763 | 0.4636 | 0.395 | 0.5248 | 48/48 | 0.5 / 0.2 | warn |
+| comprehensiveness ratio | ↑ | 45.5251 | 13.6115 | 20.6734 | 8.8529 | 8.112e+09 | 48/48 | 1 / 1 | good |
+| LIME infidelity (normalized) | ↓ | 0.7353 | 0.656 | 0.683 | 0 | 0.9901 | 48/48 | 0.5 / 1 | warn |
+| max-sensitivity | ↓ | 0.0001 | 0 | 0 | 0 | 0.0424 | 48/48 | 0.5 / 2 | good |
+| run-to-run rank stability (all-d) | ↑ | 0.9215 | 0.9119 | 0.9186 | 0.8894 | 0.9999 | 48/48 | 0.9 / 0.7 | good |
+| run-to-run rank stability (top-k) | ↑ | 0.8562 | 0.875 | 0.875 | 0.6962 | 1 | 48/48 | 0.9 / 0.7 | warn |
+| run-to-run sign stability | ↑ | 1 | 1 | 1 | 0.8917 | 1 | 48/48 | 0.9 / 0.7 | good |
+| SHAP vs LIME sign disagreement | — | 0.293 | 0.2748 | 0.2809 | 0 | 0.3536 | 48/48 | not scored | descriptive |
+| SHAP vs LIME rank agreement (all-d) | — | 0.8796 | 0.8857 | 0.8796 | 0.6173 | 0.9999 | 48/48 | not scored | descriptive |
+| SHAP vs LIME rank agreement (top-k) | — | 0.75 | 0.75 | 0.75 | 0.375 | 1 | 48/48 | not scored | descriptive |
+| SHAP vs LIME top-k overlap | — | 0.8333 | 0.8333 | 0.8333 | 0.6667 | 1 | 48/48 | not scored | descriptive |
+| SHAP vs LIME magnitude disagreement | — | 0.3891 | 0.4384 | 0.4123 | 0.0041 | 0.5882 | 48/48 | not scored | descriptive |
+| cross-segment rank stability | — | 0.954 | 0.9874 | 0.9794 | 0.9485 | 0.9928 | 47/48 (1 n/c) | not scored | descriptive |
+| top-k flip rate | — | 1 | 0 | 0.5 | 0 | 1 | 47/48 (1 n/c) | not scored | descriptive |
+
+`n/c` means an explicitly not-computed run; descriptive metrics are not scored.
+<!-- END AUTO:real-results-table -->
 
 (*"verdict@median" = what the current report default would say about the pooled
 median. ↑ higher-is-better, ↓ lower-is-better.*)
