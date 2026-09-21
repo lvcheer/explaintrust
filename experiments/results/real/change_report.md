@@ -1,0 +1,163 @@
+# Real-data benchmark change report
+
+## Baseline identity
+
+- Path: `experiments/benchmark_results.json`
+- SHA-256: `f27fb8aec0c522e179517a12fe9787e7e8131189af4190aa44a96e618bf0f071`
+- The baseline has summary medians but no raw run records.
+
+## Comparison rule
+
+- Scope: adult, diabetes, pooled medians.
+- Relative tolerance: 10%.
+- Default absolute floor: 0.0500.
+- Flag when `absolute_delta > max(metric_absolute_floor, relative_tolerance * abs(historical_value))`.
+- Equality is within tolerance; missing or non-finite values are always flagged.
+
+## Metric comparison
+
+| Metric | Scope | Historical | Refreshed | Signed delta | Tolerance | Status |
+|---|---|---:|---:|---:|---:|---|
+| removal_corr | adult | 0.4271 | 0.4497 | 0.0226 | 0.0500 | within tolerance |
+| removal_corr | diabetes | 0.4789 | 0.4763 | -0.0026 | 0.0500 | within tolerance |
+| removal_corr | pooled | 0.4543 | 0.4636 | 0.0093 | 0.0500 | within tolerance |
+| comprehensiveness | adult | 63.7952 | 45.5251 | -18.2701 | 6.3795 | MATERIAL CHANGE |
+| comprehensiveness | diabetes | 10.6341 | 13.6115 | 2.9774 | 1.0634 | MATERIAL CHANGE |
+| comprehensiveness | pooled | 28.5470 | 20.6734 | -7.8736 | 2.8547 | MATERIAL CHANGE |
+| infidelity | adult | 0.7483 | 0.7353 | -0.0130 | 0.0748 | within tolerance |
+| infidelity | diabetes | 0.7246 | 0.6560 | -0.0686 | 0.0725 | within tolerance |
+| infidelity | pooled | 0.7256 | 0.6830 | -0.0426 | 0.0726 | within tolerance |
+| sensitivity | adult | 0.0000 | 0.0001 | 0.0001 | 0.0100 | within tolerance |
+| sensitivity | diabetes | 0.0000 | 0.0000 | 0.0000 | 0.0100 | within tolerance |
+| sensitivity | pooled | 0.0000 | 0.0000 | 0.0000 | 0.0100 | within tolerance |
+| stability_rank | adult | 0.9259 | 0.9215 | -0.0044 | 0.0926 | within tolerance |
+| stability_rank | diabetes | 0.9096 | 0.9119 | 0.0023 | 0.0910 | within tolerance |
+| stability_rank | pooled | 0.9207 | 0.9186 | -0.0021 | 0.0921 | within tolerance |
+| stability_rank_topk | adult | 1.0000 | 0.8562 | -0.1438 | 0.1000 | MATERIAL CHANGE |
+| stability_rank_topk | diabetes | 1.0000 | 0.8750 | -0.1250 | 0.1000 | MATERIAL CHANGE |
+| stability_rank_topk | pooled | 1.0000 | 0.8750 | -0.1250 | 0.1000 | MATERIAL CHANGE |
+| stability_sign | adult | 1.0000 | 1.0000 | 0.0000 | 0.1000 | within tolerance |
+| stability_sign | diabetes | 1.0000 | 1.0000 | 0.0000 | 0.1000 | within tolerance |
+| stability_sign | pooled | 1.0000 | 1.0000 | 0.0000 | 0.1000 | within tolerance |
+| disagreement_sign | adult | 0.3194 | 0.2930 | -0.0264 | 0.0500 | within tolerance |
+| disagreement_sign | diabetes | 0.3249 | 0.2748 | -0.0501 | 0.0500 | MATERIAL CHANGE |
+| disagreement_sign | pooled | 0.3249 | 0.2809 | -0.0440 | 0.0500 | within tolerance |
+| disagreement_rank | adult | 0.8042 | 0.8796 | 0.0754 | 0.0804 | within tolerance |
+| disagreement_rank | diabetes | 0.8665 | 0.8857 | 0.0192 | 0.0867 | within tolerance |
+| disagreement_rank | pooled | 0.8427 | 0.8796 | 0.0369 | 0.0843 | within tolerance |
+| disagreement_rank_topk | adult | 0.6875 | 0.7500 | 0.0625 | 0.0688 | within tolerance |
+| disagreement_rank_topk | diabetes | 0.6875 | 0.7500 | 0.0625 | 0.0688 | within tolerance |
+| disagreement_rank_topk | pooled | 0.6875 | 0.7500 | 0.0625 | 0.0688 | within tolerance |
+| disagreement_topk | adult | 0.7500 | 0.8333 | 0.0833 | 0.0750 | MATERIAL CHANGE |
+| disagreement_topk | diabetes | 0.8333 | 0.8333 | 0.0000 | 0.0833 | within tolerance |
+| disagreement_topk | pooled | 0.7917 | 0.8333 | 0.0416 | 0.0792 | within tolerance |
+| disagreement_magnitude | adult | 0.4940 | 0.3891 | -0.1049 | 0.0500 | MATERIAL CHANGE |
+| disagreement_magnitude | diabetes | 0.5160 | 0.4384 | -0.0776 | 0.0516 | MATERIAL CHANGE |
+| disagreement_magnitude | pooled | 0.4940 | 0.4123 | -0.0817 | 0.0500 | MATERIAL CHANGE |
+| distribution_rank | adult | 0.9835 | 0.9540 | -0.0295 | 0.0984 | within tolerance |
+| distribution_rank | diabetes | 0.9914 | 0.9874 | -0.0040 | 0.0991 | within tolerance |
+| distribution_rank | pooled | 0.9890 | 0.9794 | -0.0096 | 0.0989 | within tolerance |
+| distribution_flip | adult | 1.0000 | 1.0000 | 0.0000 | 0.1000 | within tolerance |
+| distribution_flip | diabetes | 0.0000 | 0.0000 | 0.0000 | 0.0500 | within tolerance |
+| distribution_flip | pooled | 1.0000 | 0.5000 | -0.5000 | 0.1000 | MATERIAL CHANGE |
+
+## Non-comparable fields
+
+The historical file has no raw runs, split hashes, sample records, background records, or environment metadata. Paired run-level changes and provenance fields are therefore not comparable.
+
+## Interpretation
+
+A material-change flag is a prespecified screening result, not a hypothesis test
+or an automatic regression failure. Twelve of the 42 dataset/scope comparisons
+were flagged. The explanations below separate direct observations from likely
+mechanisms and do not assign a single cause where the historical evidence cannot
+support one.
+
+### Protocol differences that affect comparability
+
+The historical summary was generated by the runner introduced with commit
+`508ee45`. That runner encoded and scaled the complete dataset before splitting,
+used random row-level 70/30 splits for both datasets, explained the first four
+test rows, and constructed tree explainers without the supplied background.
+Its stability aggregate used only the first explained row and LIME seeds 0--4.
+
+The refreshed protocol instead fits preprocessing on training rows only, uses
+Adult's official holdout and a patient-group holdout for Diabetes, samples four
+test rows by outer seed, and uses explicit-background interventional TreeSHAP.
+It averages stability over all four explained rows and uses outer-seed offsets
+0--4. These changes remove leakage and improve coverage, but they also change
+the estimand. Because several changes occurred together and the historical file
+contains no raw runs, their individual effects cannot be estimated retrospectively.
+
+### Comprehensiveness: heavy-tailed ratio, not a stable effect size
+
+All three comprehensiveness scopes were flagged: the refreshed median decreased
+for Adult (63.7952 to 45.5251), increased for Diabetes (10.6341 to 13.6115), and
+decreased when pooled (28.5470 to 20.6734). The refreshed sample-level evidence
+contains 192 finite ratios with median 14.3962, but five exceed `1e9`. Direct
+recalculation of those five cases shows a mean random-removal drop of zero in
+four cases and `5.55e-18` in the fifth, while top-ranked removal changes the
+prediction by 0.1082--0.8156. The implemented `1e-12` denominator safeguard
+therefore produces ratios of approximately `1.08e11`--`8.16e11`.
+
+This confirms that the extreme P90 and the model/run means are driven by a
+near-zero denominator. The medians remain descriptive, but the ratio should not
+be interpreted as a calibrated effect size or used to rank datasets. The
+opposite Adult and Diabetes directions, changed sampling/splits, and absence of
+historical raw values prevent a more specific causal attribution. No value was
+trimmed or replaced after inspection.
+
+### Top-k stability: expanded sample coverage
+
+The historical top-k stability medians were 1.0000 for Adult, Diabetes, and the
+pooled scope. The refreshed runner averages four instance-level stability
+values per run rather than evaluating only the first instance. Within the new
+raw results, restricting the diagnostic back to each run's first instance gives
+a median of 1.0000 for both datasets. Averaging all four instances yields run
+medians of 0.8562 for Adult and 0.8750 for Diabetes. Thus the material changes
+are directly consistent with the planned coverage correction: additional
+instances expose LIME rank variability that the first-instance-only aggregate
+did not represent. The switch from fixed seeds 0--4 to outer-seed offsets is an
+additional, inseparable protocol difference.
+
+### SHAP/LIME disagreement: changed explanation and holdout semantics
+
+The flagged disagreement comparisons are Diabetes sign disagreement, Adult
+top-k overlap, and magnitude disagreement in both datasets and pooled. The old
+tree path used `TreeExplainer(model)` and did not use the background passed to
+the benchmark. The refreshed tree path uses interventional TreeSHAP with the
+same explicit 200-row training background used as the LIME reference. Together
+with the official/group-aware holdouts and seeded row sampling, this changes the
+comparison being measured.
+
+The refreshed model-stratified medians show that tree models drive these
+diagnostics. Magnitude-disagreement medians are 0.3891/0.4892 for Adult RF/GB
+and 0.5184/0.4708 for Diabetes RF/GB, compared with 0.0041 and 0.0047 for the
+respective logistic-regression runs. Logistic regression also has median sign
+disagreement 0 and top-k overlap 1 in both datasets. These observations support
+a tree-explanation/background mechanism, but they do not isolate it from the
+new splits and sampled instances. The disagreement metrics are descriptive;
+their changes do not establish that either explainer became more or less
+correct.
+
+### Distribution flip: discrete pooled-median effect
+
+Adult and Diabetes retain their historical dataset medians of 1.0000 and
+0.0000; only the pooled median changes, from 1.0000 to 0.5000. With three
+segments, the run-level flip rate takes the discrete values 0, 0.5, and 1. In
+the refreshed results, the 23 finite Adult runs contain 5 zeros, 3 halves, and
+15 ones (one run is explicitly not computed), while the 24 Diabetes runs
+contain 17 zeros, 1 half, and 6 ones. Combining these opposing distributions
+places 0.5 at the pooled center. The historical summary has no run values, so
+its pooled value of 1.0000 cannot be reconstructed or paired with the refreshed
+runs. Dataset-specific values are therefore more informative than the pooled
+median for this diagnostic.
+
+### Overall assessment
+
+The other 30 comparisons are within their frozen tolerances, including removal
+correlation, infidelity, sensitivity, full-rank and sign stability, full and
+top-k disagreement rank, and cross-segment rank. The flagged results are
+retained as negative or changed findings. They support updating public numbers
+to this traceable bundle, but not changing thresholds or claiming that the
+refresh proves improved explanation quality.

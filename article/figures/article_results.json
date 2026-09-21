@@ -1,0 +1,316 @@
+{
+  "schema_version": 1,
+  "generated_by": "article/scripts/generate_figures.py",
+  "generator_sha256": "15afa62225c8edd9ba8a55291346995870a6c16c5099c268780cc28934d15f95",
+  "environment": {
+    "python": "3.11.15",
+    "numpy": "2.4.6",
+    "scikit_learn": "1.9.1",
+    "shap": "0.51.0",
+    "lime": "0.2.0.1"
+  },
+  "config": {
+    "dataset_rows": 1500,
+    "population_x0_x2_correlation": 0.85,
+    "seed": 0,
+    "train_fraction": 0.7,
+    "background_rows": 80,
+    "explained_instances": 20,
+    "lime_samples": 1500,
+    "top_k": 3,
+    "comprehensiveness_random_draws": 20,
+    "stability_runs": 8,
+    "model": {
+      "type": "RandomForestClassifier",
+      "n_estimators": 80,
+      "max_depth": 4
+    }
+  },
+  "dataset": {
+    "empirical_x0_x2_correlation": 0.868615,
+    "test_accuracy": 0.764444
+  },
+  "faithfulness": {
+    "removal_effect_correlation": 0.688137,
+    "comprehensiveness_ratio": 3.196505,
+    "per_instance_removal_effect_correlation": [
+      0.814593,
+      0.589668,
+      0.881463,
+      0.64438,
+      0.636364,
+      0.950992,
+      0.515152,
+      0.674775,
+      0.927273,
+      0.808514,
+      0.401218,
+      0.50303,
+      0.975534,
+      0.681033,
+      0.544016,
+      0.620064,
+      0.519003,
+      0.750366,
+      0.656538,
+      0.668762
+    ],
+    "per_instance_comprehensiveness_ratio": [
+      7.215501,
+      5.378193,
+      3.22547,
+      5.479533,
+      1.981272,
+      3.189194,
+      3.138375,
+      2.874899,
+      0.922089,
+      0.729429,
+      1.659647,
+      6.168694,
+      1.046247,
+      4.259649,
+      3.64354,
+      3.241595,
+      3.138417,
+      2.708057,
+      0.091236,
+      3.83906
+    ]
+  },
+  "agreement": {
+    "before_rank_corr": 0.676364,
+    "after_rank_corr": 0.747273,
+    "before_sign_disagreement": 0.535,
+    "after_sign_disagreement": 0.255,
+    "per_instance_before_rank_corr": [
+      0.50303,
+      0.478788,
+      0.660606,
+      0.745455,
+      0.636364,
+      0.963636,
+      0.793939,
+      0.818182,
+      0.806061,
+      0.551515,
+      0.10303,
+      0.951515,
+      0.587879,
+      0.624242,
+      0.393939,
+      0.963636,
+      0.684848,
+      0.684848,
+      0.721212,
+      0.854545
+    ],
+    "per_instance_after_rank_corr": [
+      0.660606,
+      0.575758,
+      0.854545,
+      0.684848,
+      0.587879,
+      0.987879,
+      0.721212,
+      0.866667,
+      0.745455,
+      0.660606,
+      0.321212,
+      0.939394,
+      0.781818,
+      0.733333,
+      0.624242,
+      0.866667,
+      0.769697,
+      0.854545,
+      0.793939,
+      0.915152
+    ],
+    "per_instance_before_sign_disagreement": [
+      0.6,
+      0.7,
+      0.5,
+      0.6,
+      0.5,
+      0.7,
+      0.7,
+      0.6,
+      0.2,
+      0.4,
+      0.5,
+      0.3,
+      0.6,
+      0.6,
+      0.7,
+      0.5,
+      0.3,
+      0.7,
+      0.3,
+      0.7
+    ],
+    "per_instance_after_sign_disagreement": [
+      0.2,
+      0.4,
+      0.3,
+      0.0,
+      0.4,
+      0.2,
+      0.3,
+      0.3,
+      0.2,
+      0.3,
+      0.2,
+      0.1,
+      0.2,
+      0.1,
+      0.4,
+      0.3,
+      0.4,
+      0.2,
+      0.2,
+      0.4
+    ]
+  },
+  "stability": {
+    "rank_corr": 0.733333,
+    "topk_rank_corr": 1.0,
+    "sign_agreement": 1.0,
+    "topk_overlap": 1.0,
+    "n_features": 10
+  },
+  "conversion": {
+    "features": [
+      "x0",
+      "x1",
+      "x2",
+      "x3",
+      "x4",
+      "x5",
+      "x6",
+      "x7",
+      "x8",
+      "x9"
+    ],
+    "shap": [
+      -0.03857,
+      -0.170426,
+      -0.063427,
+      -7.4e-05,
+      -0.002621,
+      -0.004032,
+      0.009199,
+      0.00424,
+      -0.00139,
+      0.003057
+    ],
+    "raw_lime": [
+      0.129906,
+      -0.106165,
+      0.080312,
+      0.011044,
+      -0.007116,
+      -0.001936,
+      -0.00855,
+      0.001081,
+      0.003427,
+      -0.007032
+    ],
+    "contribution_lime": [
+      0.023333,
+      -0.158445,
+      -0.060486,
+      -0.001875,
+      -0.006535,
+      -0.001335,
+      0.010449,
+      0.000647,
+      0.004628,
+      0.004626
+    ],
+    "n_instances": 20,
+    "shap_context": {
+      "method": "tree",
+      "feature_perturbation": "interventional",
+      "masker": "Independent",
+      "output_space": "probability",
+      "class_index": 1,
+      "expected_value": 0.5142379003202728,
+      "background_source": "provided_rows",
+      "background": {
+        "n_rows": 80,
+        "n_features": 10,
+        "mean": [
+          -0.13436847439716942,
+          -0.12949555368046964,
+          -0.05298967816559112,
+          -0.0832018585989876,
+          -0.0871591061046478,
+          0.04888556515524576,
+          0.22931507126695302,
+          0.05961495123691263,
+          -0.022572876732848843,
+          -0.020089858087397203
+        ],
+        "sha256": "3178c2ef713ce09890bef9367dc6b894d0df586d6e7e2d81507380e9fdd1857e"
+      },
+      "shap_version": "0.51.0"
+    }
+  },
+  "endpoints": {
+    "config": {
+      "dataset_rows": 1200,
+      "seed": 42,
+      "explained_instances": 10,
+      "display_features": 4,
+      "population_correlations": {
+        "clean": 0.0,
+        "collinear": 0.85
+      }
+    },
+    "profiles": {
+      "clean": {
+        "empirical_x0_x2_correlation": 0.047312,
+        "features": [
+          "x0",
+          "x1",
+          "x2",
+          "x3"
+        ],
+        "shap_mean_absolute": [
+          0.12589,
+          0.082943,
+          0.006786,
+          0.003907
+        ],
+        "lime_mean_absolute": [
+          0.078384,
+          0.070375,
+          0.005112,
+          0.004372
+        ]
+      },
+      "collinear": {
+        "empirical_x0_x2_correlation": 0.855114,
+        "features": [
+          "x0",
+          "x1",
+          "x2",
+          "x3"
+        ],
+        "shap_mean_absolute": [
+          0.110619,
+          0.074707,
+          0.041706,
+          0.004456
+        ],
+        "lime_mean_absolute": [
+          0.066052,
+          0.065302,
+          0.030919,
+          0.004917
+        ]
+      }
+    }
+  }
+}

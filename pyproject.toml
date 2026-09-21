@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "explaintrust"
-version = "0.1.0"
+version = "0.2.0rc1"
 description = "Diagnostic metrics for tabular SHAP and LIME explanations."
 readme = "README.md"
 requires-python = ">=3.9"
@@ -38,6 +38,7 @@ dependencies = [
 app = ["streamlit>=1.45", "plotly>=5.0", "matplotlib>=3.6"]
 xgboost = ["xgboost>=2,<3"]
 test = ["pytest>=8.0"]
+docs = ["reportlab>=4.0"]
 release = ["build>=1.2", "twine>=5.0"]
 
 [project.urls]

@@ -47,14 +47,14 @@ def test_cli_accepts_custom_count_and_default():
     assert benchmark._parse_args([]).n_explain == benchmark.N_EXPLAIN
 
 
-def test_main_uses_selected_rows_for_all_models_independent_of_background_budget(monkeypatch, tmp_path):
+def test_main_uses_selected_rows_for_all_models_independent_of_background_budget(
+        monkeypatch, benchmark_artifact_sandbox):
     frame = pd.DataFrame(np.arange(80).reshape(20, 4), columns=list('abcd'))
     data = RawDataset(frame, np.arange(20) % 2, list('abcd'), [],
                       test_mask=np.arange(20) >= 10)
     monkeypatch.setattr(benchmark, 'load_adult', lambda: data)
     monkeypatch.setattr(benchmark, 'load_diabetes', lambda: data)
     monkeypatch.setattr(benchmark, 'SEEDS', range(2))
-    monkeypatch.setattr(benchmark, 'HERE', tmp_path)
     class Model:
         def fit(self, X, y):
             return self
@@ -67,15 +67,21 @@ def test_main_uses_selected_rows_for_all_models_independent_of_background_budget
         calls.append((seed, test_positions.tolist()))
         return {**{key: 0.5 for key in benchmark.METRICS}, 'shap_context': {}}
     monkeypatch.setattr(benchmark, '_run_metrics', metrics)
+    sandbox = benchmark_artifact_sandbox(benchmark, n_explain=3)
     for bg in [2, 5]:
         monkeypatch.setattr(benchmark, 'BG', bg)
         benchmark.main(n_explain=3)
-        payload = json.loads((tmp_path / 'benchmark_results.json').read_text())
-        assert payload['budget']['requested_explanations'] == 3
-        for run in payload['runs']:
+        raw = json.loads((sandbox['results'] / 'raw_runs.json').read_text())
+        summary = json.loads((sandbox['results'] / 'summary.json').read_text())
+        assert summary['budget']['requested_explanations'] == 3
+        for run in raw['runs']:
             assert run['sampling']['actual'] == run['sampling']['requested'] == 3
             assert run['sampling']['available'] == 10
             assert run['sampling']['unit'] == 'test_row'
+    assert sandbox['historical'].read_text() == sandbox['historical_text']
+    assert {path.name for path in sandbox['results'].iterdir()} == {
+        'raw_runs.json', 'summary.json', 'environment.json', 'change_report.md',
+    }
     assert len(calls) == 16 and calls[:8] == calls[8:]
     for i in range(0, 16, 2):
         assert calls[i] == calls[i + 1]

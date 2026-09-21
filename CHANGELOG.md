@@ -6,7 +6,9 @@ All notable changes are recorded here. This project follows
 
 ## [Unreleased]
 
-### Fixed
+## [0.2.0rc1] - 2026-09-21
+
+### Changed
 
 - Added classification/regression performance metrics, confusion matrices and ROC
   curves, model-specific controls including an MLP, configurable quality-analysis
@@ -39,7 +41,8 @@ All notable changes are recorded here. This project follows
   by patient before fitting imputation, scaling or categorical vocabulary.
   Per-run exports record split provenance and patient overlap; dataset loaders
   now return raw features and split metadata instead of globally encoded arrays.
-  Historical benchmark results remain explicitly marked as requiring a rerun.
+  The historical benchmark remains immutable; the reviewed refreshed bundle,
+  change report and generated public table now document the corrected protocol.
 
 - Reports now separate scored faithfulness/sensitivity/reproducibility checks
   from descriptive method disagreement and subgroup heterogeneity. Descriptive
@@ -52,8 +55,23 @@ All notable changes are recorded here. This project follows
   Tree calls without a background retain training-path behavior; contradictory
   explicit mode/background combinations are rejected. Optional returned context
   and app exports record the actual reference, mode and selected-class base value.
-  Experiment and article generators use the aligned protocol; saved historical
-  results are marked as awaiting regeneration.
+  Experiment and article generators use the aligned protocol. Reviewed synthetic,
+  real-data and article result bundles now drive their public tables, numerical
+  claims and figures through a write/check consistency command; historical
+  top-level experiment JSON files remain preserved comparison baselines. CI,
+  contributor guidance and the release checklist now run the same consistency
+  contract.
+- Source distributions now include the headless reference demo alongside the
+  README, license, changelog, citation metadata and build configuration. Package
+  CI clean-installs the built wheel and verifies its import path, metadata,
+  dependencies and a serializable minimal trust report.
+- The bilingual README now leads with a runnable quickstart, an example report,
+  metric boundaries, and checked findings from the refreshed synthetic and
+  Adult/Diabetes benchmarks.
+- The Quarto article now opens as a project homepage with the problem,
+  evaluation taxonomy, protocol, evidence, limitations, installation, demo,
+  repository and citation links. A reproducible two-page English technical
+  brief carries the same checked findings and embeds its source digest.
 - Binary `class_index=0` now selects the class-0 decision margin and native
   single-output SHAP attributions, with matching LIME directions. Per-class
   SHAP outputs and already-selected KernelSHAP outputs are not negated again.
@@ -103,5 +121,6 @@ All notable changes are recorded here. This project follows
 
 - Removed unsafe pickle/joblib model upload from the Streamlit application.
 
-[Unreleased]: https://github.com/lvcheer/explaintrust/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/lvcheer/explaintrust/compare/v0.2.0rc1...HEAD
+[0.2.0rc1]: https://github.com/lvcheer/explaintrust/compare/v0.1.0...v0.2.0rc1
 [0.1.0]: https://github.com/lvcheer/explaintrust/releases/tag/v0.1.0

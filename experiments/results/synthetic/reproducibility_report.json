@@ -1,0 +1,54 @@
+{
+  "schema_version": 1,
+  "comparison_date": "2026-09-21",
+  "protocol": "experiments/protocol.md",
+  "config_sha256": "5915c3d6e8742aaf18b7abca6507030bd0291b7b5f1f51ceaee605c303fbdc63",
+  "runner_sha256": "7c99fa174ec4c8c8428c9e626ee3cdaeccf3e2a815ad0a6aa8b707c8daadc748",
+  "run_1": {
+    "experiment_commit": "bb8055253557358433e5c78dbec4d848f5d8c0f8",
+    "result_snapshot_commit": "fc2a2837ea423852205418d54a3b4821f6a5bea1",
+    "generated_at_utc": "2026-09-21T09:30:26.851420+00:00",
+    "git_dirty": false,
+    "file_sha256": {
+      "raw_runs.json": "9f2135d6da4d28a50a7523bd115b1ce3d51e2070ae659db66110a474e1d9dcb5",
+      "summary.json": "7c3749cb903eb559557777f3517f12a296bd8b023fa3be495597f1f435e484ca",
+      "environment.json": "fdabfd74fcab10df6d4ed7404740b13be2c4a1438abd2c849d7bf8588971ec66"
+    }
+  },
+  "run_2": {
+    "experiment_commit": "fc2a2837ea423852205418d54a3b4821f6a5bea1",
+    "result_snapshot": "the commit containing this report",
+    "generated_at_utc": "2026-09-21T09:39:19.342591+00:00",
+    "git_dirty": false,
+    "file_sha256": {
+      "raw_runs.json": "b5703d4dc46c4499b6fc31bc088878574eed99f84af773dff070e2c35e316927",
+      "summary.json": "500473d9228667d051d76cf8e30879e31191f98df4a2d211e2cf26285b959636",
+      "environment.json": "3354cba5d5fb94c2d8250f07e3550a247857a44663d2c605652849a63c03db7d"
+    }
+  },
+  "comparison": {
+    "raw_run_count": 240,
+    "summary_metric_count": 12,
+    "raw_runs_equal": true,
+    "summary_metrics_equal": true,
+    "frozen_config_equal": true,
+    "environment_equal_after_exclusions": true,
+    "runner_sha256_equal": true,
+    "config_sha256_equal": true,
+    "canonical_raw_runs_sha256": "e3289ddf967ae7df01d74c3fbb8bf4f3ae19d7efe34a57913cf3a792a86787df",
+    "canonical_summary_metrics_sha256": "812d3ca2594e10626e21ec41f472a24664219f716a60502bea21ee255227e514"
+  },
+  "excluded_fields": {
+    "raw_runs.json": [
+      "run_context.git_commit"
+    ],
+    "summary.json": [
+      "run_context.git_commit"
+    ],
+    "environment.json": [
+      "generated_at_utc",
+      "git.commit"
+    ]
+  },
+  "conclusion": "The two clean runs produced identical raw observations and summary metrics under the same runner, frozen configuration, Python environment, and installed packages. Byte-level file hashes differ only because the recorded Git commit and generation time are intentionally part of the provenance."
+}

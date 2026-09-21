@@ -6,8 +6,8 @@ abstract: >-
   consistency of tabular post-hoc explanations produced by SHAP and LIME.
 authors:
   - name: "lvcheer"
-version: 0.1.0
-date-released: 2026-09-04
+version: 0.2.0rc1
+date-released: 2026-09-21
 license: MIT
 repository-code: "https://github.com/lvcheer/explaintrust"
 url: "https://github.com/lvcheer/explaintrust"

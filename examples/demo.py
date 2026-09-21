@@ -8,6 +8,8 @@ This trains a model on the synthetic collinear dataset, explains a few
 instances with both SHAP and LIME, runs every trust metric, and prints a
 human-readable trust report. It is the reference pipeline the Streamlit app
 wraps in a UI.
+All displayed metrics are computed at runtime; this module embeds neither
+benchmark medians nor fitted experimental thresholds.
 """
 
 from __future__ import annotations

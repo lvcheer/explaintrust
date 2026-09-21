@@ -1,0 +1,344 @@
+{
+  "schema_version": 1,
+  "frozen_on": "2026-09-21",
+  "entry_point": "python -m experiments.build_all_results",
+  "modes": ["write", "check"],
+  "implementation_status": "implemented",
+  "sources": [
+    {
+      "id": "synthetic_summary",
+      "path": "experiments/results/synthetic/summary.json",
+      "status": "canonical",
+      "schema_version": 1
+    },
+    {
+      "id": "real_summary",
+      "path": "experiments/results/real/summary.json",
+      "status": "canonical",
+      "schema_version": 1
+    },
+    {
+      "id": "real_change_report",
+      "path": "experiments/results/real/change_report.md",
+      "status": "reviewed_interpretation"
+    },
+    {
+      "id": "report_policy",
+      "path": "explaintrust/report.py",
+      "status": "versioned_policy_not_empirical_result"
+    },
+    {
+      "id": "article_results",
+      "path": "article/figures/article_results.json",
+      "status": "canonical",
+      "schema_version": 1,
+      "producer": "article/scripts/generate_figures.py"
+    }
+  ],
+  "generated_targets": [
+    {
+      "id": "synthetic_results_table",
+      "source_ids": ["synthetic_summary"],
+      "target": "experiments/README.md",
+      "mode": "markdown_block",
+      "implementation_status": "implemented",
+      "start_marker": "<!-- BEGIN AUTO:synthetic-results-table -->",
+      "end_marker": "<!-- END AUTO:synthetic-results-table -->",
+      "renderer": "synthetic_results_table",
+      "source_fields": [
+        "metrics[].name",
+        "metrics[].direction",
+        "metrics[].good_median",
+        "metrics[].bad_median",
+        "metrics[].good_threshold",
+        "metrics[].warn_threshold",
+        "metrics[].good_pass_rate",
+        "metrics[].bad_flag_rate"
+      ]
+    },
+    {
+      "id": "real_results_table",
+      "source_ids": ["real_summary", "report_policy"],
+      "target": "experiments/benchmark_README.md",
+      "mode": "markdown_block",
+      "implementation_status": "implemented",
+      "start_marker": "<!-- BEGIN AUTO:real-results-table -->",
+      "end_marker": "<!-- END AUTO:real-results-table -->",
+      "renderer": "real_results_table",
+      "row_labels": {
+        "removal_corr": "removal-effect correlation",
+        "comprehensiveness": "comprehensiveness ratio",
+        "infidelity": "LIME infidelity (normalized)",
+        "sensitivity": "max-sensitivity",
+        "stability_rank": "run-to-run rank stability (all-d)",
+        "stability_rank_topk": "run-to-run rank stability (top-k)",
+        "stability_sign": "run-to-run sign stability",
+        "disagreement_sign": "SHAP vs LIME sign disagreement",
+        "disagreement_rank": "SHAP vs LIME rank agreement (all-d)",
+        "disagreement_rank_topk": "SHAP vs LIME rank agreement (top-k)",
+        "disagreement_topk": "SHAP vs LIME top-k overlap",
+        "disagreement_magnitude": "SHAP vs LIME magnitude disagreement",
+        "distribution_rank": "cross-segment rank stability",
+        "distribution_flip": "top-k flip rate"
+      },
+      "policy_keys": {
+        "removal_corr": "removal",
+        "comprehensiveness": "comprehensiveness",
+        "infidelity": "lime_infidelity",
+        "sensitivity": "sensitivity",
+        "stability_rank": "stability_rank",
+        "stability_rank_topk": "stability_rank",
+        "stability_sign": "stability_sign"
+      },
+      "source_fields": [
+        "metrics.*.direction",
+        "metrics.*.per_dataset_median.adult",
+        "metrics.*.per_dataset_median.diabetes",
+        "metrics.*.pooled_median",
+        "metrics.*.pooled_p10",
+        "metrics.*.pooled_p90",
+        "metrics.*.role",
+        "metrics.*.current_default",
+        "metrics.*.run_counts"
+      ]
+    },
+    {
+      "id": "article_numeric_claims",
+      "source_ids": ["article_results"],
+      "target": "article/index.qmd",
+      "mode": "templated_claims",
+      "implementation_status": "implemented",
+      "renderer": "article_numeric_claims",
+      "claim_ids": [
+        "faithfulness.removal_effect_correlation",
+        "faithfulness.comprehensiveness_ratio",
+        "agreement.before_rank_corr",
+        "agreement.after_rank_corr",
+        "agreement.before_sign_disagreement",
+        "agreement.after_sign_disagreement",
+        "stability.rank_corr",
+        "stability.topk_rank_corr",
+        "stability.sign_agreement",
+        "endpoints.profiles.clean.empirical_x0_x2_correlation",
+        "endpoints.profiles.collinear.empirical_x0_x2_correlation"
+      ]
+    },
+    {
+      "id": "article_conversion_data",
+      "source_ids": ["article_results"],
+      "target": "article/figures/conversion.json",
+      "mode": "json_projection",
+      "implementation_status": "implemented",
+      "renderer": "article_conversion_data"
+    },
+    {
+      "id": "article_conversion_figure",
+      "source_ids": ["article_results"],
+      "target": "article/figures/conversion_flip.png",
+      "mode": "binary_figure",
+      "implementation_status": "implemented",
+      "dimensions": [900, 600],
+      "renderer": "article_conversion_figure"
+    },
+    {
+      "id": "article_endpoints_figure",
+      "source_ids": ["article_results"],
+      "target": "article/figures/endpoints.png",
+      "mode": "binary_figure",
+      "implementation_status": "implemented",
+      "dimensions": [1650, 600],
+      "renderer": "article_endpoints_figure"
+    }
+  ],
+  "checked_manual_claims": [
+    {
+      "id": "root_readme_refresh_status",
+      "source_ids": ["synthetic_summary", "real_summary", "real_change_report"],
+      "targets": ["README.md"],
+      "implementation_status": "implemented",
+      "check_kind": "root_readme_findings",
+      "required_text": {
+        "README.md": [
+          "Reviewed synthetic calibration and real-data benchmark",
+          "outputs are stored under `experiments/results/`; their public tables are generated",
+          "经过审查的合成校准与真实数据基准结果保存在",
+          "公开表格由这些规范化摘要生成"
+        ]
+      },
+      "forbidden_text": {
+        "README.md": [
+          "Historical experiment tables await regeneration.",
+          "历史实验表格仍待重算。"
+        ]
+      },
+      "rule": "English and Chinese refresh status and headline findings must agree with the reviewed summaries and must not say experiment tables await regeneration."
+    },
+    {
+      "id": "experiment_findings",
+      "source_ids": ["synthetic_summary"],
+      "targets": ["experiments/README.md", "explaintrust/report.py"],
+      "implementation_status": "implemented",
+      "check_kind": "synthetic_findings",
+      "required_text": {
+        "experiments/README.md": [
+          "**Refresh completed (2026-09-21).**",
+          "**Three metrics separate on held-out seeds.**",
+          "descriptive diagnostics and do not affect the overall verdict"
+        ],
+        "explaintrust/report.py": [
+          "removal-effect correlation, infidelity, and max-sensitivity separate"
+        ]
+      },
+      "forbidden_text": {
+        "experiments/README.md": ["they have not been rerun"]
+      },
+      "rule": "Qualitative separation and negative-result claims must match held-out pass and flag evidence; fitted thresholds remain experiment-specific."
+    },
+    {
+      "id": "real_findings",
+      "source_ids": ["real_summary", "real_change_report"],
+      "targets": ["experiments/benchmark_README.md", "CHANGELOG.md"],
+      "implementation_status": "implemented",
+      "check_kind": "real_findings",
+      "required_text": {
+        "experiments/benchmark_README.md": [
+          "**Reviewed refresh (2026-09-21).**",
+          "the two bundles are not",
+          "directly comparable at the run level.",
+          "One Adult subgroup run is explicitly",
+          "descriptive \"does the story flip across segments\" signal"
+        ],
+        "CHANGELOG.md": [
+          "reviewed refreshed bundle",
+          "Reviewed synthetic,"
+        ]
+      },
+      "forbidden_text": {
+        "experiments/benchmark_README.md": [
+          "must be regenerated after the remaining",
+          "still required before updating empirical conclusions",
+          "remain pending a rerun"
+        ],
+        "CHANGELOG.md": [
+          "marked as requiring a rerun",
+          "marked as awaiting regeneration"
+        ]
+      },
+      "rule": "Findings must retain material changes, not-computed values, protocol non-comparability, and descriptive diagnostic roles."
+    },
+    {
+      "id": "decision_policy_mirror",
+      "source_ids": ["real_summary", "report_policy"],
+      "targets": ["experiments/benchmark_real_data.py"],
+      "implementation_status": "implemented",
+      "check_kind": "decision_policy_mirror",
+      "rule": "Scored defaults and directions must match DEFAULT_THRESHOLDS; descriptive metrics must not acquire thresholds."
+    },
+    {
+      "id": "article_refresh_status",
+      "source_ids": ["article_results"],
+      "targets": ["article/README.md", "article/index.qmd"],
+      "implementation_status": "implemented",
+      "required_text": {
+        "article/README.md": ["**Numerical refresh completed (2026-09-21).**"],
+        "article/index.qmd": ["**Version note (2026-09-21):**"]
+      },
+      "forbidden_text": {
+        "article/README.md": ["**Pending numerical refresh"],
+        "article/index.qmd": ["historical snapshots"]
+      },
+      "rule": "Pending-refresh notices may be removed only after article data, claims, and figures are regenerated together."
+    },
+    {
+      "id": "project_summary_findings",
+      "source_ids": ["synthetic_summary", "real_summary", "real_change_report"],
+      "targets": ["article/index.qmd", "docs/explaintrust-technical-brief.md"],
+      "implementation_status": "implemented",
+      "check_kind": "public_summary_findings",
+      "required_text": {
+        "article/index.qmd": [
+          "## Project at a glance",
+          "### Protocol and evidence",
+          "### Limits"
+        ],
+        "docs/explaintrust-technical-brief.md": [
+          "# explaintrust",
+          "## Three findings",
+          "## Limits and interpretation"
+        ]
+      },
+      "rule": "The project page and technical brief must retain the reviewed headline findings and their interpretation limits."
+    },
+    {
+      "id": "live_demo_boundary",
+      "source_ids": ["report_policy"],
+      "targets": ["app/streamlit_app.py", "examples/demo.py"],
+      "implementation_status": "implemented",
+      "required_text": {
+        "app/streamlit_app.py": [
+          "All displayed metrics are computed at runtime; this module embeds neither"
+        ],
+        "examples/demo.py": [
+          "All displayed metrics are computed at runtime; this module embeds neither"
+        ]
+      },
+      "forbidden_text": {
+        "app/streamlit_app.py": [
+          "experiments/results/",
+          "experiments/calibration.json",
+          "experiments/benchmark_results.json"
+        ],
+        "examples/demo.py": [
+          "experiments/results/",
+          "experiments/calibration.json",
+          "experiments/benchmark_results.json"
+        ]
+      },
+      "rule": "The demo remains a live computation and must not embed benchmark medians or fitted synthetic thresholds as universal constants."
+    }
+  ],
+  "formatting": {
+    "directions": {"higher": "↑", "lower": "↓", "descriptive": "—"},
+    "rates": "two_decimal_places",
+    "summary_values": "up_to_four_decimals_scientific_at_abs_ge_1e6",
+    "missing": "n/a",
+    "not_computed": "not computed",
+    "descriptive_verdict": "descriptive"
+  },
+  "workflow_integrations": [
+    {
+      "id": "ci_consistency_check",
+      "target": ".github/workflows/ci.yml",
+      "implementation_status": "implemented",
+      "planned_command": "python -m experiments.build_all_results --check",
+      "requirement": "CI fails when a tracked generated block, claim, data file, or figure differs from its canonical source."
+    },
+    {
+      "id": "release_refresh",
+      "target": "RELEASING.md",
+      "implementation_status": "implemented",
+      "planned_command": "python -m experiments.build_all_results && python -m experiments.build_all_results --check",
+      "requirement": "Release verification refreshes public artifacts and then proves the worktree is synchronized."
+    },
+    {
+      "id": "contributor_guidance",
+      "target": "CONTRIBUTING.md",
+      "implementation_status": "implemented",
+      "planned_command": "python -m experiments.build_all_results --check",
+      "requirement": "Contributor guidance names the consistency check for changes to experiment or article producers."
+    }
+  ],
+  "explicit_exclusions": [
+    "experiments/calibration.json",
+    "experiments/benchmark_results.json",
+    "review/",
+    "experiments/data/",
+    "article/_site/",
+    "dist/",
+    "explaintrust.egg-info/"
+  ],
+  "live_consumers_without_static_benchmark_values": [
+    "app/streamlit_app.py",
+    "examples/demo.py"
+  ]
+}

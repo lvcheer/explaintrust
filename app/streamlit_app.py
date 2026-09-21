@@ -8,6 +8,8 @@ The page follows explicit data, split, training, explanation and quality-analysi
 stages. Synthetic presets, UCI Adult/Diabetes and uploaded CSVs are supported.
 Users select SHAP, LIME or both; unselected checks remain unavailable.
 The legacy pipeline helpers below remain available to existing callers/tests.
+All displayed metrics are computed at runtime; this module embeds neither
+benchmark medians nor fitted experimental thresholds.
 """
 
 from __future__ import annotations

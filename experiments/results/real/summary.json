@@ -1,0 +1,963 @@
+{
+  "schema_version": 1,
+  "run_context": {
+    "git_commit": "a919a30c354c10b4ff69f29e24e44145ea35d8b1",
+    "git_dirty": false,
+    "config_sha256": "5ed376b04ac6d5869a16dadf2e4cb2681def7bfa181ee2c5355d910d0eec8511",
+    "environment_file": "environment.json",
+    "raw_runs_file": "raw_runs.json"
+  },
+  "frozen_config": {
+    "schema_version": 4,
+    "frozen_on": "2026-09-20",
+    "amended_on": "2026-09-21",
+    "amendment_scope": "Real-data output, historical-comparison, and subgroup SHAP additivity-failure contracts; scientific parameters are unchanged.",
+    "baseline_commit": "02f5ee541e647940072649d11ed2d09002ee1fca",
+    "prediction_target": "model-dependent scalar output selected by scalar_predictor; SHAP, LIME, and perturbation metrics use the same output within each run",
+    "synthetic": {
+      "entry_point": "python -m experiments.calibrate_thresholds",
+      "dataset_regimes": {
+        "clean": "make_collinear_dataset with x2 replaced by independent standard-normal noise",
+        "collinear": "make_collinear_dataset with its native x0/x2 proxy relationship",
+        "heterogeneous": "four-feature generator with an x0-by-x1 interaction"
+      },
+      "seeds": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19
+      ],
+      "calibration_seeds": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9
+      ],
+      "held_out_seeds": [
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19
+      ],
+      "rows": 900,
+      "split": {
+        "method": "train_test_split",
+        "test_fraction": 0.3,
+        "random_state": "outer seed",
+        "stratified": false
+      },
+      "explanations_per_seed": 4,
+      "explanation_row_selection": "first rows of the test partition",
+      "background_rows": 100,
+      "background_selection": "first rows of the training partition",
+      "top_k": 3,
+      "models": {
+        "random_forest": {
+          "class": "sklearn.ensemble.RandomForestClassifier",
+          "n_estimators": 60,
+          "max_depth": 4,
+          "random_state": "outer seed"
+        },
+        "logistic_regression": {
+          "class": "sklearn.linear_model.LogisticRegression",
+          "max_iter": 1000,
+          "use": "LIME infidelity regime"
+        }
+      },
+      "explainers": {
+        "shap_method": "tree",
+        "tree_shap_perturbation": "interventional",
+        "implicit_background_subsampling": false,
+        "lime_samples": {
+          "infidelity_and_disagreement": 1000,
+          "sensitivity_smooth_condition": 2000,
+          "stability_high_budget": 2000,
+          "stability_low_budget": 20
+        }
+      },
+      "perturbation_budgets": {
+        "comprehensiveness_random_draws": 20,
+        "infidelity_perturbations": 200,
+        "infidelity_strategy": "gaussian",
+        "infidelity_noise_standard_deviation": "0.5 * background feature standard deviation",
+        "infidelity_normalized": true,
+        "sensitivity_perturbations": 6,
+        "sensitivity_radius": 0.1,
+        "sensitivity_coordinates": "background-standardized",
+        "stability_runs": 5
+      },
+      "metrics": [
+        "removal_effect_correlation",
+        "comprehensiveness_ratio",
+        "lime_infidelity_normalized",
+        "max_sensitivity",
+        "stability_rank",
+        "stability_sign",
+        "disagreement_sign",
+        "disagreement_rank",
+        "disagreement_topk_overlap",
+        "disagreement_magnitude",
+        "distribution_rank",
+        "distribution_topk_flip"
+      ],
+      "threshold_rule": {
+        "higher_is_better": {
+          "good": "P20(nominal_good_calibration)",
+          "warn": "P80(nominal_bad_calibration)"
+        },
+        "lower_is_better": {
+          "good": "P80(nominal_good_calibration)",
+          "warn": "P20(nominal_bad_calibration)"
+        }
+      }
+    },
+    "real_data": {
+      "entry_point": "python -m experiments.benchmark_real_data --n-explain 4",
+      "datasets": {
+        "adult": {
+          "uci_id": 2,
+          "source_url": "https://archive.ics.uci.edu/static/public/2/adult.zip",
+          "archive_sha256": "7537312dd56c2b98035880805ce99e68183a30ee468aa5329d6df0fbb3cc21bb",
+          "raw_rows": 48842,
+          "raw_feature_columns_used": 12,
+          "split": "official training/test holdout",
+          "official_test_rows": 16281
+        },
+        "diabetes": {
+          "uci_id": 296,
+          "source_url": "https://archive.ics.uci.edu/static/public/296/diabetes+130-us+hospitals+for+years+1999-2008.zip",
+          "archive_sha256": "f82ac129da2ddd2299391ff6fbae3a6a58b3edcf59ac9d7bd480c00fe453112a",
+          "raw_rows": 101766,
+          "raw_feature_columns_used": 39,
+          "unique_patient_groups": 71518,
+          "split": "30 percent patient-group holdout by outer seed"
+        }
+      },
+      "models": {
+        "RandomForest": {
+          "class": "sklearn.ensemble.RandomForestClassifier",
+          "n_estimators": 60,
+          "max_depth": 5,
+          "random_state": "outer seed",
+          "n_jobs": -1
+        },
+        "GradientBoosting": {
+          "class": "sklearn.ensemble.GradientBoostingClassifier",
+          "n_estimators": 60,
+          "max_depth": 3,
+          "random_state": "outer seed"
+        },
+        "LogisticRegression": {
+          "class": "sklearn.linear_model.LogisticRegression",
+          "max_iter": 1000,
+          "random_state": "outer seed"
+        }
+      },
+      "seeds": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ],
+      "preprocessing": {
+        "fit": "training partition only",
+        "numeric_missing": "training median; zero if the training column is entirely missing",
+        "numeric_scaling": "training mean and population standard deviation; constant columns use unit scale",
+        "categorical_vocabulary": "training categories only, sorted, drop-first",
+        "unseen_test_categories": "all-zero encoded block"
+      },
+      "explanations_per_dataset_model_seed": 4,
+      "explained_row_sampling": "uniform without replacement from the test partition using a dedicated RNG keyed by outer seed; shared across models",
+      "background_max_rows": 200,
+      "background_sampling": "uniform without replacement from training rows using outer seed",
+      "subgroup_max_rows": 2000,
+      "subgroup_sampling": "uniform without replacement from test rows using outer seed",
+      "subgroup_segmentation": "three bins at empirical 0.33 and 0.66 quantiles of the most balanced eligible encoded feature",
+      "top_k": 3,
+      "explainers": {
+        "shap_method": "auto",
+        "explicit_background": true,
+        "lime_samples": 1000,
+        "lime_seed": "outer seed for displayed batch; outer seed + offsets for repeats"
+      },
+      "perturbation_budgets": {
+        "comprehensiveness_random_draws": 20,
+        "infidelity_perturbations": 200,
+        "infidelity_strategy": "gaussian",
+        "infidelity_noise_standard_deviation": "0.5 * background feature standard deviation",
+        "infidelity_normalized": true,
+        "sensitivity_perturbations": 6,
+        "sensitivity_radius": 0.1,
+        "sensitivity_coordinates": "background-standardized",
+        "stability_seed_offsets": [
+          0,
+          1,
+          2,
+          3,
+          4
+        ]
+      },
+      "metrics": [
+        "removal_corr",
+        "comprehensiveness",
+        "infidelity",
+        "sensitivity",
+        "stability_rank",
+        "stability_rank_topk",
+        "stability_sign",
+        "disagreement_sign",
+        "disagreement_rank",
+        "disagreement_rank_topk",
+        "disagreement_topk",
+        "disagreement_magnitude",
+        "distribution_rank",
+        "distribution_flip"
+      ],
+      "aggregation": {
+        "run_metric": "mean excluding NaN while preserving infinity",
+        "summary": "finite-run P10, median, and P90",
+        "summary_unit": "dataset-model-seed run",
+        "confidence_interval": false,
+        "not_computed": "excluded from numeric aggregation and counted separately"
+      },
+      "failure_handling": {
+        "subgroup_shap_additivity": {
+          "scope": "subgroup SHAP attribution batch only",
+          "affected_metrics": [
+            "distribution_rank",
+            "distribution_flip"
+          ],
+          "status": "not_computed",
+          "continue_other_metrics": true,
+          "check_additivity": true,
+          "drop_failing_rows": false
+        }
+      },
+      "output_contract": {
+        "results_directory": "experiments/results/real",
+        "historical_baseline": "experiments/benchmark_results.json",
+        "preserve_historical_baseline": true,
+        "publish_only_after_complete_run": true,
+        "strict_json": true,
+        "artifacts": {
+          "raw_runs": {
+            "path": "experiments/results/real/raw_runs.json",
+            "schema_version": 1,
+            "required_top_level_fields": [
+              "schema_version",
+              "run_context",
+              "n_runs",
+              "runs"
+            ]
+          },
+          "summary": {
+            "path": "experiments/results/real/summary.json",
+            "schema_version": 1,
+            "required_top_level_fields": [
+              "schema_version",
+              "run_context",
+              "frozen_config",
+              "aggregation",
+              "budget",
+              "datasets",
+              "n_runs",
+              "seeds",
+              "models",
+              "metrics"
+            ]
+          },
+          "environment": {
+            "path": "experiments/results/real/environment.json",
+            "schema_version": 1,
+            "required_top_level_fields": [
+              "schema_version",
+              "generated_at_utc",
+              "command",
+              "git",
+              "python",
+              "platform",
+              "config",
+              "runner",
+              "datasets",
+              "packages"
+            ]
+          },
+          "change_report": {
+            "path": "experiments/results/real/change_report.md",
+            "format": "markdown",
+            "required_sections": [
+              "baseline identity",
+              "comparison rule",
+              "metric comparison",
+              "non-comparable fields",
+              "interpretation"
+            ]
+          }
+        }
+      },
+      "historical_comparison": {
+        "baseline_path": "experiments/benchmark_results.json",
+        "baseline_sha256": "f27fb8aec0c522e179517a12fe9787e7e8131189af4190aa44a96e618bf0f071",
+        "comparison_scope": [
+          "adult",
+          "diabetes",
+          "pooled"
+        ],
+        "statistic": "median",
+        "comparison_precision_decimals": 4,
+        "direction": "two_sided",
+        "relative_tolerance": 0.1,
+        "absolute_floor_default": 0.05,
+        "absolute_floor_overrides": {
+          "comprehensiveness": 1.0,
+          "sensitivity": 0.01
+        },
+        "flag_rule": "absolute_delta > max(metric_absolute_floor, relative_tolerance * abs(historical_value))",
+        "equality_rule": "within_tolerance",
+        "missing_or_nonfinite_rule": "always_flag",
+        "flag_interpretation": "material_change_requiring_technical_explanation_not_regression_failure",
+        "limitation": "The historical baseline has summary medians but no raw runs, so paired run-level comparison is not possible."
+      }
+    }
+  },
+  "aggregation": {
+    "run_metric": "mean_excluding_nan_preserving_infinity",
+    "summary": "finite_run_percentiles",
+    "summary_unit": "dataset_model_seed_run",
+    "note": "Percentiles describe runs, not confidence intervals or independent samples; not-computed runs are excluded numerically and counted separately."
+  },
+  "budget": {
+    "requested_explanations": 4,
+    "background_max": 200,
+    "subgroup_max": 2000,
+    "lime_samples": 1000,
+    "top_k": 3,
+    "infidelity_perturbations": 200,
+    "infidelity_strategy": "gaussian",
+    "infidelity_normalized": true,
+    "comprehensiveness_random": 20,
+    "sensitivity_perturbations": 6,
+    "sensitivity_radius": 0.1,
+    "stability_seed_offsets": [
+      0,
+      1,
+      2,
+      3,
+      4
+    ],
+    "sensitivity_and_stability_scope": "all_explained_samples"
+  },
+  "datasets": {
+    "adult": {
+      "raw_rows": 48842,
+      "raw_features": 12
+    },
+    "diabetes": {
+      "raw_rows": 101766,
+      "raw_features": 39
+    }
+  },
+  "n_runs": 48,
+  "seeds": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7
+  ],
+  "models": [
+    "RandomForest",
+    "GradientBoosting",
+    "LogisticRegression"
+  ],
+  "metrics": {
+    "removal_corr": {
+      "direction": "higher",
+      "run_counts": {
+        "total": 48,
+        "finite": 48,
+        "nan": 0,
+        "positive_infinity": 0,
+        "negative_infinity": 0,
+        "not_computed": 0
+      },
+      "per_dataset_run_counts": {
+        "adult": {
+          "total": 24,
+          "finite": 24,
+          "nan": 0,
+          "positive_infinity": 0,
+          "negative_infinity": 0,
+          "not_computed": 0
+        },
+        "diabetes": {
+          "total": 24,
+          "finite": 24,
+          "nan": 0,
+          "positive_infinity": 0,
+          "negative_infinity": 0,
+          "not_computed": 0
+        }
+      },
+      "pooled_median": 0.4636,
+      "pooled_p10": 0.395,
+      "pooled_p90": 0.5248,
+      "per_dataset_median": {
+        "adult": 0.4497,
+        "diabetes": 0.4763
+      },
+      "role": "scored",
+      "current_default": [
+        0.5,
+        0.2
+      ]
+    },
+    "comprehensiveness": {
+      "direction": "higher",
+      "run_counts": {
+        "total": 48,
+        "finite": 48,
+        "nan": 0,
+        "positive_infinity": 0,
+        "negative_infinity": 0,
+        "not_computed": 0
+      },
+      "per_dataset_run_counts": {
+        "adult": {
+          "total": 24,
+          "finite": 24,
+          "nan": 0,
+          "positive_infinity": 0,
+          "negative_infinity": 0,
+          "not_computed": 0
+        },
+        "diabetes": {
+          "total": 24,
+          "finite": 24,
+          "nan": 0,
+          "positive_infinity": 0,
+          "negative_infinity": 0,
+          "not_computed": 0
+        }
+      },
+      "pooled_median": 20.6734,
+      "pooled_p10": 8.8529,
+      "pooled_p90": 8112195137.2377,
+      "per_dataset_median": {
+        "adult": 45.5251,
+        "diabetes": 13.6115
+      },
+      "role": "scored",
+      "current_default": [
+        1.0,
+        1.0
+      ]
+    },
+    "infidelity": {
+      "direction": "lower",
+      "run_counts": {
+        "total": 48,
+        "finite": 48,
+        "nan": 0,
+        "positive_infinity": 0,
+        "negative_infinity": 0,
+        "not_computed": 0
+      },
+      "per_dataset_run_counts": {
+        "adult": {
+          "total": 24,
+          "finite": 24,
+          "nan": 0,
+          "positive_infinity": 0,
+          "negative_infinity": 0,
+          "not_computed": 0
+        },
+        "diabetes": {
+          "total": 24,
+          "finite": 24,
+          "nan": 0,
+          "positive_infinity": 0,
+          "negative_infinity": 0,
+          "not_computed": 0
+        }
+      },
+      "pooled_median": 0.683,
+      "pooled_p10": 0.0,
+      "pooled_p90": 0.9901,
+      "per_dataset_median": {
+        "adult": 0.7353,
+        "diabetes": 0.656
+      },
+      "role": "scored",
+      "current_default": [
+        0.5,
+        1.0
+      ]
+    },
+    "sensitivity": {
+      "direction": "lower",
+      "run_counts": {
+        "total": 48,
+        "finite": 48,
+        "nan": 0,
+        "positive_infinity": 0,
+        "negative_infinity": 0,
+        "not_computed": 0
+      },
+      "per_dataset_run_counts": {
+        "adult": {
+          "total": 24,
+          "finite": 24,
+          "nan": 0,
+          "positive_infinity": 0,
+          "negative_infinity": 0,
+          "not_computed": 0
+        },
+        "diabetes": {
+          "total": 24,
+          "finite": 24,
+          "nan": 0,
+          "positive_infinity": 0,
+          "negative_infinity": 0,
+          "not_computed": 0
+        }
+      },
+      "pooled_median": 0.0,
+      "pooled_p10": 0.0,
+      "pooled_p90": 0.0424,
+      "per_dataset_median": {
+        "adult": 0.0001,
+        "diabetes": 0.0
+      },
+      "role": "scored",
+      "current_default": [
+        0.5,
+        2.0
+      ]
+    },
+    "stability_rank": {
+      "direction": "higher",
+      "run_counts": {
+        "total": 48,
+        "finite": 48,
+        "nan": 0,
+        "positive_infinity": 0,
+        "negative_infinity": 0,
+        "not_computed": 0
+      },
+      "per_dataset_run_counts": {
+        "adult": {
+          "total": 24,
+          "finite": 24,
+          "nan": 0,
+          "positive_infinity": 0,
+          "negative_infinity": 0,
+          "not_computed": 0
+        },
+        "diabetes": {
+          "total": 24,
+          "finite": 24,
+          "nan": 0,
+          "positive_infinity": 0,
+          "negative_infinity": 0,
+          "not_computed": 0
+        }
+      },
+      "pooled_median": 0.9186,
+      "pooled_p10": 0.8894,
+      "pooled_p90": 0.9999,
+      "per_dataset_median": {
+        "adult": 0.9215,
+        "diabetes": 0.9119
+      },
+      "role": "scored",
+      "current_default": [
+        0.9,
+        0.7
+      ]
+    },
+    "stability_rank_topk": {
+      "direction": "higher",
+      "run_counts": {
+        "total": 48,
+        "finite": 48,
+        "nan": 0,
+        "positive_infinity": 0,
+        "negative_infinity": 0,
+        "not_computed": 0
+      },
+      "per_dataset_run_counts": {
+        "adult": {
+          "total": 24,
+          "finite": 24,
+          "nan": 0,
+          "positive_infinity": 0,
+          "negative_infinity": 0,
+          "not_computed": 0
+        },
+        "diabetes": {
+          "total": 24,
+          "finite": 24,
+          "nan": 0,
+          "positive_infinity": 0,
+          "negative_infinity": 0,
+          "not_computed": 0
+        }
+      },
+      "pooled_median": 0.875,
+      "pooled_p10": 0.6962,
+      "pooled_p90": 1.0,
+      "per_dataset_median": {
+        "adult": 0.8562,
+        "diabetes": 0.875
+      },
+      "role": "scored",
+      "current_default": [
+        0.9,
+        0.7
+      ]
+    },
+    "stability_sign": {
+      "direction": "higher",
+      "run_counts": {
+        "total": 48,
+        "finite": 48,
+        "nan": 0,
+        "positive_infinity": 0,
+        "negative_infinity": 0,
+        "not_computed": 0
+      },
+      "per_dataset_run_counts": {
+        "adult": {
+          "total": 24,
+          "finite": 24,
+          "nan": 0,
+          "positive_infinity": 0,
+          "negative_infinity": 0,
+          "not_computed": 0
+        },
+        "diabetes": {
+          "total": 24,
+          "finite": 24,
+          "nan": 0,
+          "positive_infinity": 0,
+          "negative_infinity": 0,
+          "not_computed": 0
+        }
+      },
+      "pooled_median": 1.0,
+      "pooled_p10": 0.8917,
+      "pooled_p90": 1.0,
+      "per_dataset_median": {
+        "adult": 1.0,
+        "diabetes": 1.0
+      },
+      "role": "scored",
+      "current_default": [
+        0.9,
+        0.7
+      ]
+    },
+    "disagreement_sign": {
+      "direction": "descriptive",
+      "run_counts": {
+        "total": 48,
+        "finite": 48,
+        "nan": 0,
+        "positive_infinity": 0,
+        "negative_infinity": 0,
+        "not_computed": 0
+      },
+      "per_dataset_run_counts": {
+        "adult": {
+          "total": 24,
+          "finite": 24,
+          "nan": 0,
+          "positive_infinity": 0,
+          "negative_infinity": 0,
+          "not_computed": 0
+        },
+        "diabetes": {
+          "total": 24,
+          "finite": 24,
+          "nan": 0,
+          "positive_infinity": 0,
+          "negative_infinity": 0,
+          "not_computed": 0
+        }
+      },
+      "pooled_median": 0.2809,
+      "pooled_p10": 0.0,
+      "pooled_p90": 0.3536,
+      "per_dataset_median": {
+        "adult": 0.293,
+        "diabetes": 0.2748
+      },
+      "role": "descriptive",
+      "current_default": null
+    },
+    "disagreement_rank": {
+      "direction": "descriptive",
+      "run_counts": {
+        "total": 48,
+        "finite": 48,
+        "nan": 0,
+        "positive_infinity": 0,
+        "negative_infinity": 0,
+        "not_computed": 0
+      },
+      "per_dataset_run_counts": {
+        "adult": {
+          "total": 24,
+          "finite": 24,
+          "nan": 0,
+          "positive_infinity": 0,
+          "negative_infinity": 0,
+          "not_computed": 0
+        },
+        "diabetes": {
+          "total": 24,
+          "finite": 24,
+          "nan": 0,
+          "positive_infinity": 0,
+          "negative_infinity": 0,
+          "not_computed": 0
+        }
+      },
+      "pooled_median": 0.8796,
+      "pooled_p10": 0.6173,
+      "pooled_p90": 0.9999,
+      "per_dataset_median": {
+        "adult": 0.8796,
+        "diabetes": 0.8857
+      },
+      "role": "descriptive",
+      "current_default": null
+    },
+    "disagreement_rank_topk": {
+      "direction": "descriptive",
+      "run_counts": {
+        "total": 48,
+        "finite": 48,
+        "nan": 0,
+        "positive_infinity": 0,
+        "negative_infinity": 0,
+        "not_computed": 0
+      },
+      "per_dataset_run_counts": {
+        "adult": {
+          "total": 24,
+          "finite": 24,
+          "nan": 0,
+          "positive_infinity": 0,
+          "negative_infinity": 0,
+          "not_computed": 0
+        },
+        "diabetes": {
+          "total": 24,
+          "finite": 24,
+          "nan": 0,
+          "positive_infinity": 0,
+          "negative_infinity": 0,
+          "not_computed": 0
+        }
+      },
+      "pooled_median": 0.75,
+      "pooled_p10": 0.375,
+      "pooled_p90": 1.0,
+      "per_dataset_median": {
+        "adult": 0.75,
+        "diabetes": 0.75
+      },
+      "role": "descriptive",
+      "current_default": null
+    },
+    "disagreement_topk": {
+      "direction": "descriptive",
+      "run_counts": {
+        "total": 48,
+        "finite": 48,
+        "nan": 0,
+        "positive_infinity": 0,
+        "negative_infinity": 0,
+        "not_computed": 0
+      },
+      "per_dataset_run_counts": {
+        "adult": {
+          "total": 24,
+          "finite": 24,
+          "nan": 0,
+          "positive_infinity": 0,
+          "negative_infinity": 0,
+          "not_computed": 0
+        },
+        "diabetes": {
+          "total": 24,
+          "finite": 24,
+          "nan": 0,
+          "positive_infinity": 0,
+          "negative_infinity": 0,
+          "not_computed": 0
+        }
+      },
+      "pooled_median": 0.8333,
+      "pooled_p10": 0.6667,
+      "pooled_p90": 1.0,
+      "per_dataset_median": {
+        "adult": 0.8333,
+        "diabetes": 0.8333
+      },
+      "role": "descriptive",
+      "current_default": null
+    },
+    "disagreement_magnitude": {
+      "direction": "descriptive",
+      "run_counts": {
+        "total": 48,
+        "finite": 48,
+        "nan": 0,
+        "positive_infinity": 0,
+        "negative_infinity": 0,
+        "not_computed": 0
+      },
+      "per_dataset_run_counts": {
+        "adult": {
+          "total": 24,
+          "finite": 24,
+          "nan": 0,
+          "positive_infinity": 0,
+          "negative_infinity": 0,
+          "not_computed": 0
+        },
+        "diabetes": {
+          "total": 24,
+          "finite": 24,
+          "nan": 0,
+          "positive_infinity": 0,
+          "negative_infinity": 0,
+          "not_computed": 0
+        }
+      },
+      "pooled_median": 0.4123,
+      "pooled_p10": 0.0041,
+      "pooled_p90": 0.5882,
+      "per_dataset_median": {
+        "adult": 0.3891,
+        "diabetes": 0.4384
+      },
+      "role": "descriptive",
+      "current_default": null
+    },
+    "distribution_rank": {
+      "direction": "descriptive",
+      "run_counts": {
+        "total": 48,
+        "finite": 47,
+        "nan": 0,
+        "positive_infinity": 0,
+        "negative_infinity": 0,
+        "not_computed": 1
+      },
+      "per_dataset_run_counts": {
+        "adult": {
+          "total": 24,
+          "finite": 23,
+          "nan": 0,
+          "positive_infinity": 0,
+          "negative_infinity": 0,
+          "not_computed": 1
+        },
+        "diabetes": {
+          "total": 24,
+          "finite": 24,
+          "nan": 0,
+          "positive_infinity": 0,
+          "negative_infinity": 0,
+          "not_computed": 0
+        }
+      },
+      "pooled_median": 0.9794,
+      "pooled_p10": 0.9485,
+      "pooled_p90": 0.9928,
+      "per_dataset_median": {
+        "adult": 0.954,
+        "diabetes": 0.9874
+      },
+      "role": "descriptive",
+      "current_default": null
+    },
+    "distribution_flip": {
+      "direction": "descriptive",
+      "run_counts": {
+        "total": 48,
+        "finite": 47,
+        "nan": 0,
+        "positive_infinity": 0,
+        "negative_infinity": 0,
+        "not_computed": 1
+      },
+      "per_dataset_run_counts": {
+        "adult": {
+          "total": 24,
+          "finite": 23,
+          "nan": 0,
+          "positive_infinity": 0,
+          "negative_infinity": 0,
+          "not_computed": 1
+        },
+        "diabetes": {
+          "total": 24,
+          "finite": 24,
+          "nan": 0,
+          "positive_infinity": 0,
+          "negative_infinity": 0,
+          "not_computed": 0
+        }
+      },
+      "pooled_median": 0.5,
+      "pooled_p10": 0.0,
+      "pooled_p90": 1.0,
+      "per_dataset_median": {
+        "adult": 1.0,
+        "diabetes": 0.0
+      },
+      "role": "descriptive",
+      "current_default": null
+    }
+  }
+}

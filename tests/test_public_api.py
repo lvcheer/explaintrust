@@ -40,8 +40,12 @@ def test_release_metadata_versions_match():
     root = Path(__file__).resolve().parents[1]
     pyproject = (root / "pyproject.toml").read_text()
     citation = (root / "CITATION.cff").read_text()
+    brief = (root / "docs/explaintrust-technical-brief.md").read_text()
+    changelog = (root / "CHANGELOG.md").read_text()
     project_version = re.search(r'^version = "([^"]+)"$', pyproject, re.MULTILINE)
     citation_version = re.search(r"^version: ([^\s]+)$", citation, re.MULTILINE)
     assert project_version is not None
     assert citation_version is not None
     assert project_version.group(1) == citation_version.group(1) == explaintrust.__version__
+    assert f"Version {explaintrust.__version__} |" in brief
+    assert f"## [{explaintrust.__version__}]" in changelog

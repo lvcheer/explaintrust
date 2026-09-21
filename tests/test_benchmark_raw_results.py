@@ -9,7 +9,8 @@ def test_infinite_failure_is_not_dropped_from_run_mean():
     values = [0.1, np.inf, np.nan]
     assert np.isposinf(_mean(values))
     assert _counts(values) == {'total': 3, 'finite': 1, 'nan': 1,
-                               'positive_infinity': 1, 'negative_infinity': 0}
+                               'positive_infinity': 1, 'negative_infinity': 0,
+                               'not_computed': 0}
     assert _measurement(_mean(values)) == {'value': None, 'status': 'positive_infinity'}
 
 
